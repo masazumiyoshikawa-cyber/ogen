@@ -1487,9 +1487,9 @@ function sendConfirmEmail(b, evLines, isUpdate) {
     en: b.contact ? '\nContact: ' + b.contact : '',
   };
   const bodies = {
-    ja: `${b.name} 様\n\n${isUpdate ? '以下の内容で立願を更新いたしました。' : '以下のご奉仕の立願が完了いたしました。'}\n\n【ご奉仕】\n${evLines.join('\n')}\n\n【立願情報】\n役割：${b.role}\n対応言語：${b.language}${tmLine('ja')}${contactLine.ja}${b.notes ? '\nご伝言：' + b.notes : ''}\n\n当日のご奉仕をお待ちしております。\nGLAD応現院`,
-    zh: `${b.name}\n\n${isUpdate ? '您的志愿已更新如下。' : '以下奉仕的志愿已确认。'}\n\n【奉仕项目】\n${evLines.join('\n')}\n\n【志愿信息】\n角色：${b.role}\n对应语言：${b.language}${tmLine('zh')}${contactLine.zh}${b.notes ? '\n留言：' + b.notes : ''}\n\n期待您的到来。\nGLAD応現院`,
-    en: `Dear ${b.name},\n\n${isUpdate ? 'Your registration has been updated as follows.' : 'Your registration has been confirmed.'}\n\n[Services]\n${evLines.join('\n')}\n\n[Registration Details]\nRole: ${b.role}\nLanguage: ${b.language}${tmLine('en')}${contactLine.en}${b.notes ? '\nMessage: ' + b.notes : ''}\n\nWe look forward to welcoming you.\nGLAD Ogen-in`,
+    ja: `${b.name} 様\n\n${isUpdate ? '以下の内容で立願を更新いたしました。' : '以下のご奉仕の立願が完了いたしました。'}\n\n対象月：${I18N.ja.period}（${MONTH_CODE}）\n\n【ご奉仕】\n${evLines.join('\n')}\n\n【立願情報】\n役割：${b.role}\n対応言語：${b.language}${tmLine('ja')}${contactLine.ja}${b.notes ? '\nご伝言：' + b.notes : ''}\n\n当日のご奉仕をお待ちしております。\nGLAD応現院`,
+    zh: `${b.name}\n\n${isUpdate ? '您的志愿已更新如下。' : '以下奉仕的志愿已确认。'}\n\n对象月份：${I18N.zh.period}（${MONTH_CODE}）\n\n【奉仕项目】\n${evLines.join('\n')}\n\n【志愿信息】\n角色：${b.role}\n对应语言：${b.language}${tmLine('zh')}${contactLine.zh}${b.notes ? '\n留言：' + b.notes : ''}\n\n期待您的到来。\nGLAD応現院`,
+    en: `Dear ${b.name},\n\n${isUpdate ? 'Your registration has been updated as follows.' : 'Your registration has been confirmed.'}\n\nMonth: ${I18N.en.period} (${MONTH_CODE})\n\n[Services]\n${evLines.join('\n')}\n\n[Registration Details]\nRole: ${b.role}\nLanguage: ${b.language}${tmLine('en')}${contactLine.en}${b.notes ? '\nMessage: ' + b.notes : ''}\n\nWe look forward to welcoming you.\nGLAD Ogen-in`,
   };
   const subject = subjects[currentLang] || subjects.ja;
   const body = bodies[currentLang] || bodies.ja;
