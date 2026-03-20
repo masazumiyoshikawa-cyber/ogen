@@ -409,87 +409,6 @@ const MONTH_CODE = '2026-04'; // ← 毎月ここを変更してください
 // ── 受付状態 ──
 let receptionOpen = false; // デフォルトは閉鎖
 
-function updateReceptionUI(isOpen) {
-  receptionOpen = isOpen;
-  const btn = document.getElementById('reception-toggle-btn');
-  const lbl = document.getElementById('reception-status-label');
-  const formWrap = document.getElementById('formWrap');
-  const closedMsg = document.getElementById('reception-closed-msg');
-  if (isOpen) {
-    btn.textContent = '受付中 → 閉じる';
-    btn.style.background = 'var(--danger)';
-    btn.style.color = '#fff';
-    lbl.textContent = '現在受付中です';
-    if (formWrap) formWrap.style.display = 'block';
-    if (closedMsg) closedMsg.style.display = 'none';
-  } else {
-    btn.textContent = '受付停止中 → 開く';
-    btn.style.background = 'var(--ink)';
-    btn.style.color = 'rgba(255,255,255,0.85)';
-    lbl.textContent = '現在受付を停止しています';
-    if (formWrap) formWrap.style.display = 'none';
-    if (closedMsg) closedMsg.style.display = 'block';
-  }
-}
-
-function resetChanges() {
-  if (!confirm('当月のすべての追加・キャンセル記録を初期化します。\n\n・キャンセルされた立願は削除されます\n・現在の立願がすべて「最初の立願」として扱われます\n\nよろしいですか？')) return;
-  const headers = {
-    'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY,
-    'Content-Type': 'application/json', 'Prefer': 'return=minimal',
-  };
-  (async () => {
-    showToast('初期化中...');
-    // 1. キャンセル済み行を削除（cancelled_event_idsが空でなくevent_idsが空の行）
-    // すべての行のprev_event_ids・cancelled_event_idsをリセット
-    const rows = bookings;
-    let ok = 0;
-    for (const b of rows) {
-      const res = await fetch(
-        SUPABASE_URL + '/rest/v1/reservations?email=eq.' + encodeURIComponent(b.email) + '&month=eq.' + MONTH_CODE,
-        { method: 'PATCH', headers, body: JSON.stringify({ prev_event_ids: '[]', cancelled_event_ids: '[]', status: '新規' }) }
-      );
-      if (res.ok) ok++;
-    }
-    showToast('✓ 初期化完了（' + ok + '件）');
-    loadFromDb();
-  })();
-}
-
-function loadReceptionStatus() {
-  const key = PROJECT_CODE + '_' + MONTH_CODE + '_reception';
-  fetch(SUPABASE_URL + '/rest/v1/settings?key=eq.' + encodeURIComponent(key) + '&select=value', {
-    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY },
-  })
-  .then(r => r.json())
-  .then(rows => {
-    const isOpen = Array.isArray(rows) && rows.length > 0 && rows[0].value === 'open';
-    updateReceptionUI(isOpen);
-  })
-  .catch(() => updateReceptionUI(false));
-}
-
-function toggleReception() {
-  const newState = !receptionOpen;
-  const key = PROJECT_CODE + '_' + MONTH_CODE + '_reception';
-  const value = newState ? 'open' : 'closed';
-  const headers = {
-    'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY,
-    'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates',
-  };
-  fetch(SUPABASE_URL + '/rest/v1/settings', {
-    method: 'POST', headers,
-    body: JSON.stringify({ key, value }),
-  })
-  .then(res => {
-    if (res.ok || res.status === 409) {
-      updateReceptionUI(newState);
-      showToast(newState ? '✓ 受付を開始しました' : '✓ 受付を停止しました');
-    }
-  })
-  .catch(() => showToast('エラーが発生しました'));
-}
-
 // ── I18N ──
 const I18N = {
   ja: {
@@ -1469,6 +1388,88 @@ function showToast(msg) {
 const SUPABASE_URL = 'https://brttvnrlaahoqkepzyck.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJydHR2bnJsYWFob3FrZXB6eWNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MjMxMjYsImV4cCI6MjA4OTQ5OTEyNn0.7yEZpH68JoBhdqFsF8s28nfHVVX4hnoM6DHcD9A8GkQ';
 
+function updateReceptionUI(isOpen) {
+  receptionOpen = isOpen;
+  const btn = document.getElementById('reception-toggle-btn');
+  const lbl = document.getElementById('reception-status-label');
+  const formWrap = document.getElementById('formWrap');
+  const closedMsg = document.getElementById('reception-closed-msg');
+  if (isOpen) {
+    btn.textContent = '受付中 → 閉じる';
+    btn.style.background = 'var(--danger)';
+    btn.style.color = '#fff';
+    lbl.textContent = '現在受付中です';
+    if (formWrap) formWrap.style.display = 'block';
+    if (closedMsg) closedMsg.style.display = 'none';
+  } else {
+    btn.textContent = '受付停止中 → 開く';
+    btn.style.background = 'var(--ink)';
+    btn.style.color = 'rgba(255,255,255,0.85)';
+    lbl.textContent = '現在受付を停止しています';
+    if (formWrap) formWrap.style.display = 'none';
+    if (closedMsg) closedMsg.style.display = 'block';
+  }
+}
+
+function resetChanges() {
+  if (!confirm('当月のすべての追加・キャンセル記録を初期化します。\n\n・キャンセルされた立願は削除されます\n・現在の立願がすべて「最初の立願」として扱われます\n\nよろしいですか？')) return;
+  const headers = {
+    'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY,
+    'Content-Type': 'application/json', 'Prefer': 'return=minimal',
+  };
+  (async () => {
+    showToast('初期化中...');
+    // 1. キャンセル済み行を削除（cancelled_event_idsが空でなくevent_idsが空の行）
+    // すべての行のprev_event_ids・cancelled_event_idsをリセット
+    const rows = bookings;
+    let ok = 0;
+    for (const b of rows) {
+      const res = await fetch(
+        SUPABASE_URL + '/rest/v1/reservations?email=eq.' + encodeURIComponent(b.email) + '&month=eq.' + MONTH_CODE,
+        { method: 'PATCH', headers, body: JSON.stringify({ prev_event_ids: '[]', cancelled_event_ids: '[]', status: '新規' }) }
+      );
+      if (res.ok) ok++;
+    }
+    showToast('✓ 初期化完了（' + ok + '件）');
+    loadFromDb();
+  })();
+}
+
+function loadReceptionStatus() {
+  const key = PROJECT_CODE + '_' + MONTH_CODE + '_reception';
+  fetch(SUPABASE_URL + '/rest/v1/settings?key=eq.' + encodeURIComponent(key) + '&select=value', {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY },
+  })
+  .then(r => r.json())
+  .then(rows => {
+    const isOpen = Array.isArray(rows) && rows.length > 0 && rows[0].value === 'open';
+    updateReceptionUI(isOpen);
+  })
+  .catch(() => updateReceptionUI(false));
+}
+
+function toggleReception() {
+  const newState = !receptionOpen;
+  const key = PROJECT_CODE + '_' + MONTH_CODE + '_reception';
+  const value = newState ? 'open' : 'closed';
+  const headers = {
+    'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY,
+    'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates',
+  };
+  fetch(SUPABASE_URL + '/rest/v1/settings', {
+    method: 'POST', headers,
+    body: JSON.stringify({ key, value }),
+  })
+  .then(res => {
+    if (res.ok || res.status === 409) {
+      updateReceptionUI(newState);
+      showToast(newState ? '✓ 受付を開始しました' : '✓ 受付を停止しました');
+    }
+  })
+  .catch(() => showToast('エラーが発生しました'));
+}
+
+
 function saveToDb(b, evLines, isUpdate, cancelledIds = [], prevEventIds = []) {
   const payload = {
     at:               b.at,
@@ -1637,22 +1638,6 @@ function seedDemoData() {
     {name:'坂本 真理', email:'sakamoto.mari@demo.com', role:'TM(日本人)', language:'韓国語・英語', contact:'前田 光子', events:'21日（火） 一如祈念 / 28日（火） 法前供', event_ids:JSON.stringify(['e10','e13']), notes:'韓国語TMです', tm_prev:0, tm_escort:'', at:'2026/04/06 10:00:00', ...U_cancel(['e05','e13'],['e10','e13'],['e05'])},
     {name:'橋本 学', email:'hashimoto.manabu@demo.com', role:'TM(日本人)', language:'ポルトガル語・英語', contact:'中島 浩', events:'4日（土） 廻向法要 / 20日（月） 笠法様法楽法要', event_ids:JSON.stringify(['e01','e09']), notes:'', tm_prev:15, tm_escort:'', at:'2026/04/05 14:00:00', ...G},
   ];
-  const headers = {
-    'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY,
-    'Content-Type': 'application/json', 'Prefer': 'return=minimal',
-  };
-  (async () => {
-    showToast('デモデータを投入中...');
-    let ok = 0;
-    for (const d of DEMO) {
-      await fetch(SUPABASE_URL + '/rest/v1/reservations?email=eq.' + encodeURIComponent(d.email) + '&month=eq.' + MONTH_CODE, {method:'DELETE', headers});
-      const res = await fetch(SUPABASE_URL + '/rest/v1/reservations', {method:'POST', headers, body:JSON.stringify(d)});
-      if (res.ok) ok++;
-    }
-    showToast('✓ デモデータ ' + ok + '件を投入しました');
-    loadFromDb();
-  })();
-}
   const headers = {
     'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY,
     'Content-Type': 'application/json', 'Prefer': 'return=minimal',
