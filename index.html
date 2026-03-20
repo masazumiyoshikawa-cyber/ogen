@@ -256,6 +256,10 @@ tr:hover td{background:var(--paper-warm);}
       <div id="selBreakdown" style="font-size:0.66rem;color:rgba(255,255,255,0.5);letter-spacing:0.04em"></div>
     </div>
     <div id="formWrap">
+      <div id="reception-closed-msg" style="display:none;background:var(--paper-warm);border:1px solid var(--border-mid);border-radius:var(--radius);padding:2rem;text-align:center;margin-bottom:1rem;">
+        <div style="font-family:'Noto Serif JP',serif;font-size:0.95rem;letter-spacing:0.15em;color:var(--ink);margin-bottom:0.5rem;">現在受付を停止しています</div>
+        <div style="font-size:0.78rem;color:var(--ink-faint);letter-spacing:0.06em;">受付期間外です。担当者にお問い合わせください。</div>
+      </div>
       <div class="form-section">
         <div class="form-section-title" id="form-sec-title"></div>
         <div class="form-row">
@@ -333,6 +337,16 @@ tr:hover td{background:var(--paper-warm);}
       <div class="sec-title" id="sec-admin-title"></div>
       <div class="sec-rule"></div>
     </div>
+
+    <!-- 受付ON/OFF -->
+    <div style="background:var(--card);border:1px solid var(--border-mid);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+      <div>
+        <div style="font-family:'Noto Serif JP',serif;font-size:0.82rem;letter-spacing:0.12em;color:var(--ink);">立願受付</div>
+        <div style="font-size:0.7rem;color:var(--ink-faint);margin-top:3px;" id="reception-status-label">読み込み中...</div>
+      </div>
+      <button id="reception-toggle-btn" onclick="toggleReception()" style="padding:8px 24px;border:none;border-radius:var(--radius);cursor:pointer;font-family:'Noto Serif JP',serif;font-size:0.8rem;letter-spacing:0.1em;transition:all 0.2s;">...</button>
+    </div>
+
     <div class="stats-row">
       <div class="stat"><div class="stat-n" id="admTotal">0</div><div class="stat-l" id="adm-lbl-total"></div></div>
       <div class="stat"><div class="stat-n" id="admJa">0</div><div class="stat-l">日本語</div></div>
@@ -352,6 +366,66 @@ tr:hover td{background:var(--paper-warm);}
 // ── PROJECT CODE ──
 const PROJECT_CODE = 'GLAD';
 const MONTH_CODE = '2026-04'; // ← 毎月ここを変更してください
+
+// ── 受付状態 ──
+let receptionOpen = false; // デフォルトは閉鎖
+
+function updateReceptionUI(isOpen) {
+  receptionOpen = isOpen;
+  const btn = document.getElementById('reception-toggle-btn');
+  const lbl = document.getElementById('reception-status-label');
+  const formWrap = document.getElementById('formWrap');
+  const closedMsg = document.getElementById('reception-closed-msg');
+  if (isOpen) {
+    btn.textContent = '受付中 → 閉じる';
+    btn.style.background = 'var(--danger)';
+    btn.style.color = '#fff';
+    lbl.textContent = '現在受付中です';
+    if (formWrap) formWrap.style.display = 'block';
+    if (closedMsg) closedMsg.style.display = 'none';
+  } else {
+    btn.textContent = '受付停止中 → 開く';
+    btn.style.background = 'var(--ink)';
+    btn.style.color = 'rgba(255,255,255,0.85)';
+    lbl.textContent = '現在受付を停止しています';
+    if (formWrap) formWrap.style.display = 'none';
+    if (closedMsg) closedMsg.style.display = 'block';
+  }
+}
+
+function loadReceptionStatus() {
+  const key = PROJECT_CODE + '_' + MONTH_CODE + '_reception';
+  fetch(SUPABASE_URL + '/rest/v1/settings?key=eq.' + encodeURIComponent(key) + '&select=value', {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY },
+  })
+  .then(r => r.json())
+  .then(rows => {
+    const isOpen = Array.isArray(rows) && rows.length > 0 && rows[0].value === 'open';
+    updateReceptionUI(isOpen);
+  })
+  .catch(() => updateReceptionUI(false));
+}
+
+function toggleReception() {
+  const newState = !receptionOpen;
+  const key = PROJECT_CODE + '_' + MONTH_CODE + '_reception';
+  const value = newState ? 'open' : 'closed';
+  const headers = {
+    'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY,
+    'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates',
+  };
+  fetch(SUPABASE_URL + '/rest/v1/settings', {
+    method: 'POST', headers,
+    body: JSON.stringify({ key, value }),
+  })
+  .then(res => {
+    if (res.ok || res.status === 409) {
+      updateReceptionUI(newState);
+      showToast(newState ? '✓ 受付を開始しました' : '✓ 受付を停止しました');
+    }
+  })
+  .catch(() => showToast('エラーが発生しました'));
+}
 
 // ── I18N ──
 const I18N = {
@@ -1372,6 +1446,7 @@ document.addEventListener('DOMContentLoaded', function() {
   applyI18n();
   renderEvents();
   loadFromDb();
+  loadReceptionStatus();
 });
 
 </script>
