@@ -55,10 +55,15 @@ nav{background:var(--ink);border-top:1px solid rgba(255,255,255,0.07);display:fl
 .event-date-day{font-family:'Noto Serif JP','Noto Serif SC',serif;font-size:1.35rem;line-height:1;color:var(--ink);}
 .event-date-wd{font-size:0.6rem;color:var(--ink-faint);letter-spacing:0.06em;margin-top:3px;}
 .event-date-wd.sat{color:#4a6080;}.event-date-wd.sun{color:#7a3a30;}
-.event-body{flex:1;padding:10px 10px;min-width:0;overflow:hidden;}
-.event-name{font-family:'Noto Serif JP','Noto Serif SC',serif;font-size:0.85rem;color:var(--ink);letter-spacing:0.04em;line-height:1.5;word-break:break-all;}
-.event-meta{font-size:0.68rem;color:var(--ink-mid);margin-top:3px;}
-.event-right{display:flex;align-items:center;padding:10px 10px;flex-shrink:0;}
+.event-body{flex:1;padding:10px 13px;min-width:0;}
+.event-name{font-family:'Noto Serif JP','Noto Serif SC',serif;font-size:0.88rem;color:var(--ink);letter-spacing:0.06em;line-height:1.6;}
+.event-meta{font-size:0.7rem;color:var(--ink-mid);margin-top:3px;}
+.event-right{display:flex;align-items:center;padding:10px 13px;flex-shrink:0;}
+
+/* PC: イベントグリッドを2列に */
+@media(min-width:601px){
+  .events-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+}
 .check-mark{width:19px;height:19px;border-radius:50%;border:1.5px solid var(--border-mid);display:flex;align-items:center;justify-content:center;transition:all 0.18s;}
 .event-card.selected .check-mark{background:var(--gold);border-color:var(--gold);}
 .check-mark svg{opacity:0;transition:opacity 0.15s;}
@@ -78,6 +83,17 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 
 textarea{resize:vertical;min-height:68px;}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 @media(max-width:480px){.form-row{grid-template-columns:1fr;}}
+
+/* PC: 立願フォームを2カラムに */
+@media(min-width:601px){
+  .form-section{display:grid;grid-template-columns:1fr 1fr;gap:0 2rem;align-items:start;}
+  .form-section-title{grid-column:1/-1;}
+  .form-row{grid-column:1/-1;}
+  #tmCountWrap,#tmEscortWrap{grid-column:1/-1;}
+  .form-group:has(#langCheckboxes){grid-column:1/-1;}
+  .form-group:has(#notes){grid-column:1/-1;}
+  .form-group:has(#otherLangWrap){grid-column:1/-1;}
+}
 
 .err{color:var(--danger);font-size:0.75rem;margin-bottom:10px;display:none;}
 .submit-btn{width:100%;padding:13px;background:var(--ink);color:rgba(255,255,255,0.85);border:none;border-radius:var(--radius);font-family:'Noto Serif JP','Noto Serif SC',serif;font-weight:400;font-size:0.85rem;letter-spacing:0.2em;cursor:pointer;transition:background 0.2s;}
