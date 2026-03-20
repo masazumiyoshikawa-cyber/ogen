@@ -952,6 +952,7 @@ function downloadExcel() {
   ws_data.push(['法要', '人数', '役割', '氏名', '言語', '連絡担当', '備考']);
 
   let currentRow = 1; // 0-indexed、ヘッダーが0行目
+  const groupStartRows = []; // 各法要の開始行（太線を引く境界）
 
   EVENTS.forEach(ev => {
     const evB = sortByRole(bookings.filter(b => b.eventIds && b.eventIds.includes(ev.id)));
@@ -959,6 +960,8 @@ function downloadExcel() {
     const ca = evB.filter(b => b.role === 'センター' || b.role === 'アシスタント').length;
     const countLabel = 'C+A: ' + ca + ' / 全: ' + evB.length;
     const rowCount = Math.max(evB.length, 1);
+
+    groupStartRows.push(currentRow); // この法要の先頭行を記録
 
     if (evB.length === 0) {
       ws_data.push([evLabel, countLabel, '', '', '', '', '']);
@@ -985,8 +988,13 @@ function downloadExcel() {
     }
   });
 
+  const totalRows = currentRow;
+
   const ws = XLSX.utils.aoa_to_sheet(ws_data);
   ws['!merges'] = merges;
+
+  // ヘッダー行を固定（1行目でスクロール固定）
+  ws['!freeze'] = { xSplit: 0, ySplit: 1, topLeftCell: 'A2', activePane: 'bottomLeft' };
 
   // 列幅
   ws['!cols'] = [
@@ -1000,20 +1008,40 @@ function downloadExcel() {
   ];
 
   // 罫線定義
-  const thinBorder = { style: 'thin', color: { rgb: 'AAAAAA' } };
-  const border = { top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder };
+  const thin   = { style: 'thin',   color: { rgb: 'AAAAAA' } };
+  const thick  = { style: 'medium', color: { rgb: '555555' } };
+  const NCOLS  = 7;
 
   // 全セルにスタイル適用
   const fullRange = XLSX.utils.decode_range(ws['!ref'] || 'A1');
   for (let R = fullRange.s.r; R <= fullRange.e.r; R++) {
-    for (let C = fullRange.s.c; C <= fullRange.e.c; C++) {
+    const isHeader    = R === 0;
+    const isGroupTop  = groupStartRows.includes(R); // 法要の先頭行
+    const isLastRow   = R === totalRows - 1;        // 最終行（外枠下辺）
+
+    for (let C = 0; C < NCOLS; C++) {
       const addr = XLSX.utils.encode_cell({ r: R, c: C });
       if (!ws[addr]) ws[addr] = { t: 's', v: '' };
+
+      const isFirstCol = C === 0;
+      const isLastCol  = C === NCOLS - 1;
+
       ws[addr].s = {
-        font:      { bold: R === 0, sz: 10 },
+        font: {
+          name: 'Meiryo UI',
+          bold: isHeader,
+          sz: 10,
+        },
         alignment: { vertical: 'top', wrapText: true },
-        border,
-        fill: R === 0 ? { fgColor: { rgb: 'F0EBE3' }, patternType: 'solid' } : { patternType: 'none' },
+        fill: isHeader
+          ? { fgColor: { rgb: 'F0EBE3' }, patternType: 'solid' }
+          : { patternType: 'none' },
+        border: {
+          top:    isHeader || isGroupTop ? thick : thin,
+          bottom: isLastRow              ? thick : thin,
+          left:   isFirstCol             ? thick : thin,
+          right:  isLastCol              ? thick : thin,
+        },
       };
     }
   }
