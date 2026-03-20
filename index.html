@@ -999,10 +999,25 @@ function downloadExcel() {
     { wch: 24 }, // 備考
   ];
 
-  // ヘッダー行をボールド
-  for (let C = 0; C < 7; C++) {
-    const addr = XLSX.utils.encode_cell({r:0, c:C});
-    if (ws[addr]) ws[addr].s = { font: { bold: true } };
+  // 全セルに上揃え・罫線を適用
+  const border = {
+    top:    { style: 'thin', color: { rgb: 'AAAAAA' } },
+    bottom: { style: 'thin', color: { rgb: 'AAAAAA' } },
+    left:   { style: 'thin', color: { rgb: 'AAAAAA' } },
+    right:  { style: 'thin', color: { rgb: 'AAAAAA' } },
+  };
+  const fullRange = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+  for (let R = fullRange.s.r; R <= fullRange.e.r; R++) {
+    for (let C = fullRange.s.c; C <= fullRange.e.c; C++) {
+      const addr = XLSX.utils.encode_cell({r: R, c: C});
+      if (!ws[addr]) ws[addr] = { t: 's', v: '' };
+      const isHeader = R === 0;
+      ws[addr].s = {
+        font:      { bold: isHeader },
+        alignment: { vertical: 'top', wrapText: true },
+        border,
+      };
+    }
   }
 
   XLSX.utils.book_append_sheet(wb, ws, 'ご奉仕者一覧');
