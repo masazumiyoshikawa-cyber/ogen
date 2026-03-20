@@ -380,6 +380,11 @@ tr:hover td{background:var(--paper-warm);}
       </div>
       <button id="reception-toggle-btn" onclick="toggleReception()" style="padding:8px 24px;border:none;border-radius:var(--radius);cursor:pointer;font-family:'Noto Serif JP',serif;font-size:0.8rem;letter-spacing:0.1em;transition:all 0.2s;">...</button>
     </div>
+    <!-- 追加・キャンセル初期化 -->
+    <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border);">
+      <button onclick="resetChanges()" style="padding:6px 16px;background:none;border:1px solid var(--border-mid);border-radius:var(--radius);cursor:pointer;font-family:'Noto Sans JP',sans-serif;font-size:0.7rem;letter-spacing:0.06em;color:var(--ink-faint);transition:all 0.2s;" onmouseover="this.style.borderColor='var(--danger)';this.style.color='var(--danger)'" onmouseout="this.style.borderColor='var(--border-mid)';this.style.color='var(--ink-faint)'">🔄 追加・キャンセルを初期化する</button>
+      <div style="font-size:0.65rem;color:var(--ink-faint);margin-top:4px;letter-spacing:0.04em;">現在の立願を「最初の立願」として扱い、追加・キャンセル記録をリセットします</div>
+    </div>
 
     <div class="stats-row">
       <div class="stat"><div class="stat-n" id="admTotal">0</div><div class="stat-l" id="adm-lbl-total"></div></div>
@@ -425,6 +430,30 @@ function updateReceptionUI(isOpen) {
     if (formWrap) formWrap.style.display = 'none';
     if (closedMsg) closedMsg.style.display = 'block';
   }
+}
+
+function resetChanges() {
+  if (!confirm('当月のすべての追加・キャンセル記録を初期化します。\n\n・キャンセルされた立願は削除されます\n・現在の立願がすべて「最初の立願」として扱われます\n\nよろしいですか？')) return;
+  const headers = {
+    'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY,
+    'Content-Type': 'application/json', 'Prefer': 'return=minimal',
+  };
+  (async () => {
+    showToast('初期化中...');
+    // 1. キャンセル済み行を削除（cancelled_event_idsが空でなくevent_idsが空の行）
+    // すべての行のprev_event_ids・cancelled_event_idsをリセット
+    const rows = bookings;
+    let ok = 0;
+    for (const b of rows) {
+      const res = await fetch(
+        SUPABASE_URL + '/rest/v1/reservations?email=eq.' + encodeURIComponent(b.email) + '&month=eq.' + MONTH_CODE,
+        { method: 'PATCH', headers, body: JSON.stringify({ prev_event_ids: '[]', cancelled_event_ids: '[]', status: '新規' }) }
+      );
+      if (res.ok) ok++;
+    }
+    showToast('✓ 初期化完了（' + ok + '件）');
+    loadFromDb();
+  })();
 }
 
 function loadReceptionStatus() {
@@ -858,14 +887,29 @@ function submitForm() {
     month: MONTH_CODE,
     at: now.toLocaleString('ja-JP')
   };
-  const isUpdate = bookings.some(bk => bk.email === email);
+  const prevBooking = bookings.find(bk => bk.email === email);
+  const isUpdate = !!prevBooking;
+  const prevEventIds = isUpdate ? (prevBooking.eventIds || []) : [];
+  // 追加・キャンセルの計算
+  const addedIds    = b.eventIds.filter(id => !prevEventIds.includes(id));
+  const cancelledIds = prevEventIds.filter(id => !b.eventIds.includes(id));
+  b.prevEventIds = prevEventIds;
+  b.addedIds = addedIds;
+  b.cancelledIds = cancelledIds;
   bookings = bookings.filter(bk => bk.email !== email);
   bookings.push(b);
   const evLines = b.eventIds.map(id => {
     const ev = EVENTS.find(e => e.id === id);
-    return ev.day + (wd(ev) ? '（' + wd(ev) + '）' : '') + ' ' + (ev.name[currentLang] || ev.name.ja);
+    const isAdded = addedIds.includes(id);
+    const prefix = isUpdate && isAdded ? '[追加] ' : '';
+    return prefix + ev.day + (wd(ev) ? '（' + wd(ev) + '）' : '') + ' ' + (ev.name[currentLang] || ev.name.ja);
   });
-  saveToDb(b, evLines, isUpdate);
+  const cancelLines = cancelledIds.map(id => {
+    const ev = EVENTS.find(e => e.id === id);
+    if (!ev) return null;
+    return '[キャンセル] ' + ev.day + (wd(ev) ? '（' + wd(ev) + '）' : '') + ' ' + (ev.name[currentLang] || ev.name.ja);
+  }).filter(Boolean);
+  saveToDb(b, evLines, isUpdate, cancelledIds, prevEventIds);
   document.getElementById('formWrap').style.display = 'none';
   document.getElementById('confirmBlock').classList.add('vis');
   document.getElementById('confirmName').textContent = b.name + (L.honorific || '');
@@ -941,7 +985,8 @@ function renderList() {
   if (listFilter === 'all') {
     EVENTS.forEach(ev => {
       const evB = bookings.filter(b => b.eventIds && b.eventIds.includes(ev.id));
-      if (!evB.length) return;
+      const evCancelled = bookings.filter(b => (b.cancelledEventIds || []).includes(ev.id));
+      if (!evB.length && !evCancelled.length) return;
       const sorted = sortByRole(evB);
       const g = document.createElement('div');
       g.className = 'att-group';
@@ -949,10 +994,14 @@ function renderList() {
         + ev.day + (wd(ev) ? '（' + wd(ev) + '）' : '') + ' '
         + (ev.name[currentLang]||ev.name.ja)
         + ' — ' + groupCountLabel(sorted) + '</div>';
+      let dispIdx = 0;
       sorted.forEach((b, i) => {
-        // このイベントがbのeventIds内で何番目か
         const evIdx = b.eventIds ? b.eventIds.indexOf(ev.id) : 0;
-        g.appendChild(makeAttItem(b, i, evIdx));
+        b.addedIds = (b.status === '更新' && b.prevEventIds) ? b.eventIds.filter(id => !(b.prevEventIds||[]).includes(id)) : [];
+        g.appendChild(makeAttItem(b, dispIdx++, evIdx, ev.id));
+      });
+      evCancelled.forEach(b => {
+        g.appendChild(makeAttItem(b, dispIdx++, 0, ev.id));
       });
       wrap.appendChild(g);
     });
@@ -968,13 +1017,19 @@ function renderList() {
     const filtered = bookings.filter(b => b.eventIds && b.eventIds.includes(listFilter));
     if (!filtered.length) { empty.style.display = 'block'; return; }
     const sorted = sortByRole(filtered);
+    const cancelled = bookings.filter(b => (b.cancelledEventIds || []).includes(listFilter));
     const countDiv = document.createElement('div');
     countDiv.style.cssText = 'font-size:0.72rem;color:var(--ink-mid);margin-bottom:10px;letter-spacing:0.06em;';
     countDiv.textContent = groupCountLabel(sorted);
     wrap.appendChild(countDiv);
+    let dispIdx = 0;
     sorted.forEach((b, i) => {
       const evIdx = b.eventIds ? b.eventIds.indexOf(listFilter) : 0;
-      wrap.appendChild(makeAttItem(b, i, evIdx));
+      b.addedIds = (b.status === '更新' && b.prevEventIds) ? b.eventIds.filter(id => !(b.prevEventIds||[]).includes(id)) : [];
+      wrap.appendChild(makeAttItem(b, dispIdx++, evIdx, listFilter));
+    });
+    cancelled.forEach(b => {
+      wrap.appendChild(makeAttItem(b, dispIdx++, 0, listFilter));
     });
   }
 }
@@ -996,7 +1051,7 @@ function langTag(langStr) {
   return codes ? ' [' + codes + ']' : '';
 }
 
-function makeAttItem(b, i, evIndex) {
+function makeAttItem(b, i, evIndex, evId) {
   const prefix = ROLE_PREFIX[b.role] !== undefined ? ROLE_PREFIX[b.role] : '';
   let displayName = prefix + b.name + langTag(b.language);
   if (TM_ROLES.includes(b.role) && b.tmPrev !== null && b.tmPrev !== undefined && evIndex !== undefined) {
@@ -1009,16 +1064,28 @@ function makeAttItem(b, i, evIndex) {
   } else if (b.role === 'TM(在日)' && b.tmEscort) {
     displayName += ' (付き添い:' + b.tmEscort + ')';
   }
+  // 追加・キャンセルの判定
+  const isAdded     = evId && b.status === '更新' && (b.addedIds || []).includes(evId);
+  const isCancelled = evId && (b.cancelledEventIds || []).includes(evId);
   const init = (b.name||'').slice(0,1);
   const d = document.createElement('div');
   d.className = 'attendee-item';
   const notesHtml = b.notes
     ? `<div class="att-sub" style="font-size:0.68rem;color:var(--ink-faint);margin-top:2px;">💬 ${b.notes}</div>`
     : '';
-  d.innerHTML = `<div class="att-num">${i+1}</div>
-    <div class="att-avatar">${init}</div>
+  let nameStyle = '';
+  let badge = '';
+  if (isCancelled) {
+    nameStyle = 'color:#8b3a3a;text-decoration:line-through;';
+    badge = '<span style="font-size:0.62rem;color:#8b3a3a;margin-left:4px;">✕キャンセル</span>';
+  } else if (isAdded) {
+    nameStyle = 'color:#2a5ea8;';
+    badge = '<span style="font-size:0.62rem;color:#2a5ea8;margin-left:4px;">＋追加</span>';
+  }
+  d.innerHTML = `<div class="att-num">${isCancelled ? '－' : i+1}</div>
+    <div class="att-avatar" style="${isCancelled ? 'opacity:0.4;' : ''}">${init}</div>
     <div class="att-info">
-      <div class="att-name">${displayName}</div>
+      <div class="att-name" style="${nameStyle}">${displayName}${badge}</div>
       ${notesHtml}
     </div>`;
   return d;
@@ -1073,20 +1140,28 @@ function downloadExcel() {
 
     groupStartRows.push(currentRow); // この法要の先頭行を記録
 
-    if (evB.length === 0) {
-      ws_data.push([evLabel, countLabel, '', '', '', '', '']);
+    // キャンセル行
+    const evCancelledExcel = bookings.filter(b => (b.cancelledEventIds || []).includes(ev.id));
+    if (evB.length === 0 && evCancelledExcel.length === 0) {
+      ws_data.push({ cells: [evLabel, countLabel, '', '', '', '', ''], isAdded: false, isCancelled: false });
       currentRow++;
     } else {
       evB.forEach((b, i) => {
-        ws_data.push([
-          i === 0 ? evLabel : '',
-          i === 0 ? countLabel : '',
-          roleShort(b, ev.id),
-          b.name,
-          langShort(b.language),
-          b.contact || '',
-          getBiko(b),
-        ]);
+        const isAdded     = b.status === '更新' && (b.prevEventIds || []).length > 0 && !(b.prevEventIds || []).includes(ev.id);
+        const isCancelled = (b.cancelledEventIds || []).includes(ev.id);
+        ws_data.push({
+          cells: [
+            i === 0 ? evLabel : '',
+            i === 0 ? countLabel : '',
+            roleShort(b, ev.id),
+            b.name,
+            langShort(b.language),
+            b.contact || '',
+            getBiko(b),
+          ],
+          isAdded,
+          isCancelled,
+        });
       });
 
       // 法要・人数セルを結合
@@ -1094,13 +1169,23 @@ function downloadExcel() {
         merges.push({ s:{r:currentRow, c:0}, e:{r:currentRow+rowCount-1, c:0} });
         merges.push({ s:{r:currentRow, c:1}, e:{r:currentRow+rowCount-1, c:1} });
       }
+      // キャンセル行を末尾に追加
+      evCancelledExcel.forEach(b => {
+        ws_data.push({
+          cells: ['', '', roleShort(b, ev.id), b.name, langShort(b.language), b.contact || '', getBiko(b)],
+          isAdded: false, isCancelled: true,
+        });
+        currentRow++;
+      });
       currentRow += rowCount;
     }
   });
 
   const totalRows = currentRow;
 
-  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  // ws_dataをaoa形式に変換
+  const ws_aoa = ws_data.map(r => Array.isArray(r) ? r : r.cells);
+  const ws = XLSX.utils.aoa_to_sheet(ws_aoa);
   ws['!merges'] = merges;
 
   // ヘッダー行を固定（XMLを直接注入）
@@ -1129,8 +1214,11 @@ function downloadExcel() {
   const fullRange = XLSX.utils.decode_range(ws['!ref'] || 'A1');
   for (let R = fullRange.s.r; R <= fullRange.e.r; R++) {
     const isHeader    = R === 0;
-    const isGroupTop  = groupStartRows.includes(R); // 法要の先頭行
-    const isLastRow   = R === totalRows - 1;        // 最終行（外枠下辺）
+    const isGroupTop  = groupStartRows.includes(R);
+    const isLastRow   = R === totalRows - 1;
+    const rowMeta     = ws_data[R];
+    const isAdded     = rowMeta && !Array.isArray(rowMeta) && rowMeta.isAdded;
+    const isCancelled = rowMeta && !Array.isArray(rowMeta) && rowMeta.isCancelled;
 
     for (let C = 0; C < NCOLS; C++) {
       const addr = XLSX.utils.encode_cell({ r: R, c: C });
@@ -1139,11 +1227,18 @@ function downloadExcel() {
       const isFirstCol = C === 0;
       const isLastCol  = C === NCOLS - 1;
 
+      let fontColor = '000000';
+      if (isHeader) fontColor = INK;
+      else if (isCancelled) fontColor = '8B3A3A';
+      else if (isAdded) fontColor = '2A5EA8';
+
       ws[addr].s = {
         font: {
           name: 'Meiryo UI',
           bold: isHeader,
           sz: 10,
+          color: { rgb: fontColor },
+          strike: isCancelled,
         },
         alignment: { vertical: 'top', wrapText: true },
         fill: isHeader
@@ -1412,22 +1507,24 @@ function showToast(msg) {
 const SUPABASE_URL = 'https://brttvnrlaahoqkepzyck.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJydHR2bnJsYWFob3FrZXB6eWNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MjMxMjYsImV4cCI6MjA4OTQ5OTEyNn0.7yEZpH68JoBhdqFsF8s28nfHVVX4hnoM6DHcD9A8GkQ';
 
-function saveToDb(b, evLines, isUpdate) {
+function saveToDb(b, evLines, isUpdate, cancelledIds = [], prevEventIds = []) {
   const payload = {
-    at:        b.at,
-    name:      b.name,
-    email:     b.email,
-    language:  b.language,
-    role:      b.role,
-    tm_prev:   b.tmPrev !== null ? b.tmPrev : null,
-    tm_escort: b.tmEscort || '',
-    events:    evLines.join(' / '),
-    event_ids: JSON.stringify(b.eventIds),
-    contact:   b.contact || '',
-    notes:     b.notes || '',
-    status:    isUpdate ? '更新' : '新規',
-    project:   PROJECT_CODE,
-    month:     MONTH_CODE,
+    at:               b.at,
+    name:             b.name,
+    email:            b.email,
+    language:         b.language,
+    role:             b.role,
+    tm_prev:          b.tmPrev !== null ? b.tmPrev : null,
+    tm_escort:        b.tmEscort || '',
+    events:           evLines.join(' / '),
+    event_ids:        JSON.stringify(b.eventIds),
+    prev_event_ids:   JSON.stringify(prevEventIds),
+    cancelled_event_ids: JSON.stringify(cancelledIds),
+    contact:          b.contact || '',
+    notes:            b.notes || '',
+    status:           isUpdate ? '更新' : '新規',
+    project:          PROJECT_CODE,
+    month:            MONTH_CODE,
   };
   const headers = {
     'apikey': SUPABASE_KEY,
@@ -1486,10 +1583,16 @@ function sendConfirmEmail(b, evLines, isUpdate) {
     zh: b.contact ? '\n联络负责人：' + b.contact : '',
     en: b.contact ? '\nContact: ' + b.contact : '',
   };
+  const cancelLinesJa = (b.cancelledIds || []).map(id => { const ev = EVENTS.find(e => e.id === id); return ev ? '[キャンセル] ' + ev.day + (wd(ev) ? '（' + wd(ev) + '）' : '') + ' ' + ev.name.ja : null; }).filter(Boolean);
+  const cancelLinesZh = (b.cancelledIds || []).map(id => { const ev = EVENTS.find(e => e.id === id); return ev ? '[取消] ' + ev.day + (wd(ev) ? '（' + wd(ev) + '）' : '') + ' ' + (ev.name.zh || ev.name.ja) : null; }).filter(Boolean);
+  const cancelLinesEn = (b.cancelledIds || []).map(id => { const ev = EVENTS.find(e => e.id === id); return ev ? '[Cancelled] ' + ev.day + (wd(ev) ? ' (' + wd(ev) + ')' : '') + ' ' + (ev.name.en || ev.name.ja) : null; }).filter(Boolean);
+  const cancelBlockJa = cancelLinesJa.length ? '\n\n【キャンセル】\n' + cancelLinesJa.join('\n') : '';
+  const cancelBlockZh = cancelLinesZh.length ? '\n\n【取消项目】\n' + cancelLinesZh.join('\n') : '';
+  const cancelBlockEn = cancelLinesEn.length ? '\n\n[Cancelled]\n' + cancelLinesEn.join('\n') : '';
   const bodies = {
-    ja: `${b.name} 様\n\n${isUpdate ? '以下の内容で立願を更新いたしました。' : '以下のご奉仕の立願が完了いたしました。'}\n\n対象月：${I18N.ja.period}（${MONTH_CODE}）\n\n【ご奉仕】\n${evLines.join('\n')}\n\n【立願情報】\n役割：${b.role}\n対応言語：${b.language}${tmLine('ja')}${contactLine.ja}${b.notes ? '\nご伝言：' + b.notes : ''}\n\n当日のご奉仕をお待ちしております。\nGLAD応現院`,
-    zh: `${b.name}\n\n${isUpdate ? '您的志愿已更新如下。' : '以下奉仕的志愿已确认。'}\n\n对象月份：${I18N.zh.period}（${MONTH_CODE}）\n\n【奉仕项目】\n${evLines.join('\n')}\n\n【志愿信息】\n角色：${b.role}\n对应语言：${b.language}${tmLine('zh')}${contactLine.zh}${b.notes ? '\n留言：' + b.notes : ''}\n\n期待您的到来。\nGLAD応現院`,
-    en: `Dear ${b.name},\n\n${isUpdate ? 'Your registration has been updated as follows.' : 'Your registration has been confirmed.'}\n\nMonth: ${I18N.en.period} (${MONTH_CODE})\n\n[Services]\n${evLines.join('\n')}\n\n[Registration Details]\nRole: ${b.role}\nLanguage: ${b.language}${tmLine('en')}${contactLine.en}${b.notes ? '\nMessage: ' + b.notes : ''}\n\nWe look forward to welcoming you.\nGLAD Ogen-in`,
+    ja: `${b.name} 様\n\n${isUpdate ? '以下の内容で立願を更新いたしました。' : '以下のご奉仕の立願が完了いたしました。'}\n\n対象月：${I18N.ja.period}（${MONTH_CODE}）\n\n【ご奉仕】\n${evLines.join('\n')}${cancelBlockJa}\n\n【立願情報】\n役割：${b.role}\n対応言語：${b.language}${tmLine('ja')}${contactLine.ja}${b.notes ? '\nご伝言：' + b.notes : ''}\n\n当日のご奉仕をお待ちしております。\nGLAD応現院`,
+    zh: `${b.name}\n\n${isUpdate ? '您的志愿已更新如下。' : '以下奉仕的志愿已确认。'}\n\n对象月份：${I18N.zh.period}（${MONTH_CODE}）\n\n【奉仕项目】\n${evLines.join('\n')}${cancelBlockZh}\n\n【志愿信息】\n角色：${b.role}\n对应语言：${b.language}${tmLine('zh')}${contactLine.zh}${b.notes ? '\n留言：' + b.notes : ''}\n\n期待您的到来。\nGLAD応現院`,
+    en: `Dear ${b.name},\n\n${isUpdate ? 'Your registration has been updated as follows.' : 'Your registration has been confirmed.'}\n\nMonth: ${I18N.en.period} (${MONTH_CODE})\n\n[Services]\n${evLines.join('\n')}${cancelBlockEn}\n\n[Registration Details]\nRole: ${b.role}\nLanguage: ${b.language}${tmLine('en')}${contactLine.en}${b.notes ? '\nMessage: ' + b.notes : ''}\n\nWe look forward to welcoming you.\nGLAD Ogen-in`,
   };
   const subject = subjects[currentLang] || subjects.ja;
   const body = bodies[currentLang] || bodies.ja;
@@ -1588,20 +1691,26 @@ function loadFromDb() {
     bookings = rows.map(r => {
       let eventIds = [];
       try { eventIds = r.event_ids ? JSON.parse(r.event_ids) : []; } catch(e) {}
+      let prevEventIds = [];
+      let cancelledEventIds = [];
+      try { prevEventIds = r.prev_event_ids ? JSON.parse(r.prev_event_ids) : []; } catch(e) {}
+      try { cancelledEventIds = r.cancelled_event_ids ? JSON.parse(r.cancelled_event_ids) : []; } catch(e) {}
       return {
-        id:       r.id || Date.now(),
-        name:     r.name || '',
-        email:    r.email || '',
-        language: r.language || '',
-        role:     r.role || '',
-        tmPrev:   r.tm_prev !== null && r.tm_prev !== undefined ? parseInt(r.tm_prev, 10) : null,
-        tmEscort: r.tm_escort || '',
-        contact:  r.contact || '',
-        notes:    r.notes || '',
-        events:   r.events || '',
-        eventIds: eventIds,
-        at:       r.at || '',
-        status:   r.status || '新規',
+        id:               r.id || Date.now(),
+        name:             r.name || '',
+        email:            r.email || '',
+        language:         r.language || '',
+        role:             r.role || '',
+        tmPrev:           r.tm_prev !== null && r.tm_prev !== undefined ? parseInt(r.tm_prev, 10) : null,
+        tmEscort:         r.tm_escort || '',
+        contact:          r.contact || '',
+        notes:            r.notes || '',
+        events:           r.events || '',
+        eventIds:         eventIds,
+        prevEventIds:     prevEventIds,
+        cancelledEventIds: cancelledEventIds,
+        at:               r.at || '',
+        status:           r.status || '新規',
       };
     });
     renderList();
