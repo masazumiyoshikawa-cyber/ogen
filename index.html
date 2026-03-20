@@ -125,8 +125,8 @@ tr:hover td{background:var(--paper-warm);}
 .del-btn{background:none;border:1px solid rgba(139,58,58,0.3);color:var(--danger);padding:3px 9px;border-radius:1px;font-size:0.65rem;cursor:pointer;font-family:inherit;letter-spacing:0.04em;transition:all 0.18s;}
 .del-btn:hover{background:rgba(139,58,58,0.07);}
 
-.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--ink);color:rgba(255,255,255,0.82);padding:11px 16px;border-radius:var(--radius);font-size:0.75rem;letter-spacing:0.06em;box-shadow:0 6px 24px rgba(0,0,0,0.2);display:flex;align-items:center;gap:9px;transform:translateY(60px);opacity:0;transition:all 0.3s cubic-bezier(.34,1.56,.64,1);z-index:999;max-width:300px;}
-.toast.show{transform:translateY(0);opacity:1;}
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--ink);color:rgba(255,255,255,0.82);padding:11px 16px;border-radius:var(--radius);font-size:0.75rem;letter-spacing:0.06em;box-shadow:0 6px 24px rgba(0,0,0,0.2);display:flex;align-items:center;gap:9px;transform:translateY(60px);opacity:0;transition:all 0.3s cubic-bezier(.34,1.56,.64,1);z-index:999;max-width:300px;pointer-events:none;}
+.toast.show{transform:translateY(0);opacity:1;pointer-events:auto;}
 .checkbox-group{display:flex;flex-wrap:wrap;gap:6px 12px;padding:4px 0;}
 .cb-item{display:flex;align-items:center;gap:5px;font-size:0.82rem;color:var(--ink);cursor:pointer;letter-spacing:0.04em;}
 .cb-item input[type=checkbox]{width:15px;height:15px;accent-color:var(--gold);cursor:pointer;flex-shrink:0;}
@@ -571,43 +571,50 @@ function wd(ev) {
   return I18N[currentLang].wds[ev.wd];
 }
 
+function s(id, val, prop) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (prop === 'ph') el.placeholder = val;
+  else el.textContent = val;
+}
+
 function applyI18n() {
   const L = I18N[currentLang];
   document.title = L.title;
-  document.getElementById('hdr-title').textContent = L.title;
-  document.getElementById('hdr-period').textContent = L.period;
-  document.getElementById('nav-form').textContent = L.nav[0];
-  document.getElementById('nav-list').textContent = L.nav[1];
-  document.getElementById('nav-admin').textContent = L.nav[2];
-  document.getElementById('sec-select').textContent = L.secSelect;
-  document.getElementById('month-label').textContent = L.monthLabel;
-  document.getElementById('sel-unit').textContent = L.selUnit;
-  document.getElementById('form-sec-title').textContent = L.formSecTitle;
-  document.getElementById('lbl-last').textContent = L.lblLast + ' *';
-  document.getElementById('lbl-first').textContent = L.lblFirst + ' *';
-  document.getElementById('lbl-email').textContent = L.lblEmail + ' *';
-  document.getElementById('lbl-lang').textContent = L.lblLang;
-  document.getElementById('lbl-role').textContent = L.lblRole + ' *';
-  document.getElementById('lbl-tm-count').textContent = L.tmCountLabel;
-  document.getElementById('lbl-tm-escort').textContent = L.tmEscortLabel;
-  document.getElementById('tmEscort').placeholder = L.tmEscortPh;
-  document.getElementById('lbl-contact').textContent = L.lblContact;
-  document.getElementById('contact').placeholder = L.contactPh;
-  document.getElementById('contact-hint').textContent = L.contactHint;
-  document.getElementById('lbl-notes').textContent = L.lblNotes;
-  document.getElementById('notes').placeholder = L.notesPh;
-  document.getElementById('otherLang').placeholder = L.langOtherPh;
-  document.getElementById('submit-btn').textContent = L.submitBtn;
-  document.getElementById('confirm-title').textContent = L.confirmTitle;
-  document.getElementById('confirm-note').textContent = L.confirmNote;
-  document.getElementById('reset-btn').textContent = L.resetBtn;
-  document.getElementById('sec-list-title').textContent = L.secListTitle;
-  document.getElementById('sec-admin-title').textContent = L.secAdminTitle;
-  document.getElementById('listEmpty').textContent = L.listEmpty;
-  document.getElementById('adm-lbl-total').textContent = L.admLblTotal;
-  document.getElementById('adm-lbl-other').textContent = L.admLblOther;
-  document.getElementById('adm-lbl-ext').textContent = L.admLblExt;
-  document.getElementById('dl-btn').textContent = L.dlBtn;
+  s('hdr-title', L.title);
+  s('hdr-period', L.period);
+  s('nav-form', L.nav[0]);
+  s('nav-list', L.nav[1]);
+  s('nav-admin', L.nav[2]);
+  s('sec-select', L.secSelect);
+  s('month-label', L.monthLabel);
+  s('sel-unit', L.selUnit);
+  s('form-sec-title', L.formSecTitle);
+  s('lbl-last', L.lblLast + ' *');
+  s('lbl-first', L.lblFirst + ' *');
+  s('lbl-email', L.lblEmail + ' *');
+  s('lbl-lang', L.lblLang);
+  s('lbl-role', L.lblRole + ' *');
+  s('lbl-tm-count', L.tmCountLabel);
+  s('lbl-tm-escort', L.tmEscortLabel);
+  s('tmEscort', L.tmEscortPh, 'ph');
+  s('lbl-contact', L.lblContact);
+  s('contact', L.contactPh, 'ph');
+  s('contact-hint', L.contactHint);
+  s('lbl-notes', L.lblNotes);
+  s('notes', L.notesPh, 'ph');
+  s('otherLang', L.langOtherPh, 'ph');
+  s('submit-btn', L.submitBtn);
+  s('confirm-title', L.confirmTitle);
+  s('confirm-note', L.confirmNote);
+  s('reset-btn', L.resetBtn);
+  s('sec-list-title', L.secListTitle);
+  s('sec-admin-title', L.secAdminTitle);
+  s('listEmpty', L.listEmpty);
+  s('adm-lbl-total', L.admLblTotal);
+  s('adm-lbl-other', L.admLblOther);
+  s('adm-lbl-ext', L.admLblExt);
+  s('dl-btn', L.dlBtn);
   // role select placeholder
   document.querySelector('#role option[value=""]').textContent = L.rolePlaceholder;
   // rebuild lang checkboxes for current language
