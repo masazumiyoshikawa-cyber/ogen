@@ -231,13 +231,14 @@ tr:hover td{background:var(--paper-warm);}
 
 <!-- ADMIN LOGIN OVERLAY -->
 <div id="adminOverlay" style="position:fixed;inset:0;background:rgba(26,22,18,0.7);z-index:200;">
-  <div style="background:var(--card);border:1px solid var(--border-mid);border-radius:var(--radius);padding:2rem 2rem 1.75rem;width:300px;text-align:center;">
-    <div style="font-family:'Noto Serif JP','Noto Serif SC',serif;font-size:0.9rem;letter-spacing:0.2em;color:var(--ink);margin-bottom:1.25rem;" id="overlay-title"></div>
-    <input type="password" id="adminPwInput" style="width:100%;padding:9px 12px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--paper);color:var(--ink);font-size:0.88rem;outline:none;letter-spacing:0.1em;" placeholder="••••••" onkeydown="if(event.key==='Enter')confirmAdminLogin()">
+  <div style="background:var(--card);border:1px solid var(--border-mid);border-radius:var(--radius);padding:2rem 2rem 1.75rem;width:320px;text-align:center;">
+    <div style="font-family:'Noto Serif JP','Noto Serif SC',serif;font-size:0.9rem;letter-spacing:0.2em;color:var(--ink);margin-bottom:1.25rem;" id="overlay-title">管理者ログイン</div>
+    <input type="email" id="adminEmailInput" style="width:100%;padding:9px 12px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--paper);color:var(--ink);font-size:0.85rem;outline:none;margin-bottom:8px;" placeholder="メールアドレス">
+    <input type="password" id="adminPwInput" style="width:100%;padding:9px 12px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--paper);color:var(--ink);font-size:0.88rem;outline:none;letter-spacing:0.1em;" placeholder="パスワード" onkeydown="if(event.key==='Enter')confirmAdminLogin()">
     <div id="overlay-err" style="color:var(--danger);font-size:0.72rem;margin-top:6px;min-height:1rem;"></div>
     <div style="display:flex;gap:8px;margin-top:1rem;">
-      <button onclick="cancelAdminLogin()" style="flex:1;padding:9px;background:none;border:1px solid var(--border-mid);border-radius:var(--radius);cursor:pointer;font-size:0.78rem;color:var(--ink-mid);font-family:inherit;" id="overlay-cancel"></button>
-      <button onclick="confirmAdminLogin()" style="flex:1;padding:9px;background:var(--ink);color:rgba(255,255,255,0.85);border:none;border-radius:var(--radius);cursor:pointer;font-size:0.78rem;font-family:inherit;" id="overlay-ok"></button>
+      <button onclick="cancelAdminLogin()" style="flex:1;padding:9px;background:none;border:1px solid var(--border-mid);border-radius:var(--radius);cursor:pointer;font-size:0.78rem;color:var(--ink-mid);font-family:inherit;" id="overlay-cancel">キャンセル</button>
+      <button onclick="confirmAdminLogin()" style="flex:1;padding:9px;background:var(--ink);color:rgba(255,255,255,0.85);border:none;border-radius:var(--radius);cursor:pointer;font-size:0.78rem;font-family:inherit;" id="overlay-ok">ログイン</button>
     </div>
   </div>
 </div>
@@ -336,6 +337,10 @@ tr:hover td{background:var(--paper-warm);}
     <div class="sec-head">
       <div class="sec-title" id="sec-admin-title"></div>
       <div class="sec-rule"></div>
+      <div style="margin-top:0.75rem;font-size:0.7rem;color:var(--ink-faint);">
+        <span id="admin-user-label"></span>
+        <button onclick="adminLogout()" style="margin-left:8px;background:none;border:none;color:var(--gold);font-size:0.7rem;cursor:pointer;text-decoration:underline;font-family:inherit;">ログアウト</button>
+      </div>
     </div>
 
     <!-- 受付ON/OFF -->
@@ -1202,7 +1207,7 @@ function delBooking(email) {
 }
 
 // ── ADMIN AUTH ──
-const ADMIN_PASSWORD = 'admin1234'; // ← パスワードをここで変更してください
+// ── 管理者認証（Supabase Auth） ──
 let isAdminAuthed = false;
 let pendingTab = null;
 
@@ -1227,32 +1232,55 @@ function _doSwitchTab(tab) {
 }
 
 function showAdminOverlay() {
-  document.getElementById('overlay-title').textContent = '管理者パスワード';
-  document.getElementById('overlay-cancel').textContent = 'キャンセル';
-  document.getElementById('overlay-ok').textContent = '確認';
+  document.getElementById('adminEmailInput').value = '';
   document.getElementById('adminPwInput').value = '';
   document.getElementById('overlay-err').textContent = '';
-  const ov = document.getElementById('adminOverlay');
-  ov.classList.add('open');
-  setTimeout(() => document.getElementById('adminPwInput').focus(), 50);
+  document.getElementById('adminOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('adminEmailInput').focus(), 50);
 }
 
-function confirmAdminLogin() {
-  const val = document.getElementById('adminPwInput').value;
-  if (val === ADMIN_PASSWORD) {
-    isAdminAuthed = true;
-    document.getElementById('adminOverlay').classList.remove('open');
-    if (pendingTab) { _doSwitchTab(pendingTab); pendingTab = null; }
-  } else {
-    document.getElementById('overlay-err').textContent = 'パスワードが正しくありません';
-    document.getElementById('adminPwInput').value = '';
-    document.getElementById('adminPwInput').focus();
+async function confirmAdminLogin() {
+  const email = document.getElementById('adminEmailInput').value.trim();
+  const password = document.getElementById('adminPwInput').value;
+  document.getElementById('overlay-err').textContent = '';
+  document.getElementById('overlay-ok').textContent = '...';
+
+  try {
+    const res = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (res.ok && data.access_token) {
+      isAdminAuthed = true;
+      document.getElementById('adminOverlay').classList.remove('open');
+      document.getElementById('admin-user-label').textContent = email;
+      if (pendingTab) { _doSwitchTab(pendingTab); pendingTab = null; }
+    } else {
+      document.getElementById('overlay-err').textContent = 'メールアドレスまたはパスワードが正しくありません';
+      document.getElementById('adminPwInput').value = '';
+      document.getElementById('adminPwInput').focus();
+    }
+  } catch(e) {
+    document.getElementById('overlay-err').textContent = 'ネットワークエラーが発生しました';
   }
+  document.getElementById('overlay-ok').textContent = 'ログイン';
 }
 
 function cancelAdminLogin() {
   document.getElementById('adminOverlay').classList.remove('open');
   pendingTab = null;
+}
+
+function adminLogout() {
+  isAdminAuthed = false;
+  document.getElementById('admin-user-label').textContent = '';
+  _doSwitchTab('form');
+  showToast('ログアウトしました');
 }
 
 function showToast(msg) {
