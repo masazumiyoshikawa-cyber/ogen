@@ -1041,8 +1041,8 @@ function downloadExcel() {
   function roleShort(b, evId) {
     if (b.role === 'センター') return 'センター';
     if (b.role === 'アシスタント') return 'アシスタント';
-    if (b.role === '在日') return '在日';
-    if (b.role === '日本人') return '日本人';
+    if (b.role === '在日') return '';
+    if (b.role === '日本人') return '';
     if (TM_ROLES.includes(b.role) && b.tmPrev !== null && b.tmPrev !== undefined) {
       const evIdx = b.eventIds ? b.eventIds.indexOf(evId) : 0;
       return 'TM' + (b.tmPrev + evIdx + 1) + '回目';
@@ -1461,10 +1461,35 @@ function sendConfirmEmail(b, evLines, isUpdate) {
     zh: isUpdate ? '【志愿更新】GLAD 奉仕志愿' : '【志愿确认】GLAD 奉仕志愿',
     en: isUpdate ? '[Registration Updated] GLAD Gohoshi' : '[Registration Confirmed] GLAD Gohoshi',
   };
+  // TM情報・付き添いの補足行を生成
+  function tmLine(lang) {
+    if (!TM_ROLES.includes(b.role)) return '';
+    const prev = b.tmPrev !== null && b.tmPrev !== undefined ? b.tmPrev : 0;
+    const count = prev + 1; // 最初のご奉仕を基準に表示
+    const escort = b.role === 'TM(在日)' && b.tmEscort ? b.tmEscort : '';
+    if (lang === 'ja') {
+      let line = '\nTM回数：今回が' + count + '回目';
+      if (escort) line += '\n付き添い：' + escort;
+      return line;
+    } else if (lang === 'zh') {
+      let line = '\nTM次数：第' + count + '次';
+      if (escort) line += '\n陪同者：' + escort;
+      return line;
+    } else {
+      let line = '\nTM Count: ' + count + 'th service';
+      if (escort) line += '\nEscort: ' + escort;
+      return line;
+    }
+  }
+  const contactLine = {
+    ja: b.contact ? '\n連絡担当：' + b.contact : '',
+    zh: b.contact ? '\n联络负责人：' + b.contact : '',
+    en: b.contact ? '\nContact: ' + b.contact : '',
+  };
   const bodies = {
-    ja: `${b.name} 様\n\n${isUpdate ? '以下の内容で立願を更新いたしました。' : '以下のご奉仕の立願が完了いたしました。'}\n\n${evLines.join('\n')}\n\n役割：${b.role}\n対応言語：${b.language}${b.notes ? '\nご伝言：' + b.notes : ''}\n\n当日のご奉仕をお待ちしております。\nGLAD応現院`,
-    zh: `${b.name}\n\n${isUpdate ? '您的志愿已更新如下。' : '以下奉仕的志愿已确认。'}\n\n${evLines.join('\n')}\n\n角色：${b.role}\n语言：${b.language}${b.notes ? '\n留言：' + b.notes : ''}\n\n期待您的到来。\nGLAD応現院`,
-    en: `Dear ${b.name},\n\n${isUpdate ? 'Your registration has been updated as follows.' : 'Your registration has been confirmed.'}\n\n${evLines.join('\n')}\n\nRole: ${b.role}\nLanguage: ${b.language}${b.notes ? '\nMessage: ' + b.notes : ''}\n\nWe look forward to welcoming you.\nGLAD Ogen-in`,
+    ja: `${b.name} 様\n\n${isUpdate ? '以下の内容で立願を更新いたしました。' : '以下のご奉仕の立願が完了いたしました。'}\n\n【ご奉仕】\n${evLines.join('\n')}\n\n【立願情報】\n役割：${b.role}\n対応言語：${b.language}${tmLine('ja')}${contactLine.ja}${b.notes ? '\nご伝言：' + b.notes : ''}\n\n当日のご奉仕をお待ちしております。\nGLAD応現院`,
+    zh: `${b.name}\n\n${isUpdate ? '您的志愿已更新如下。' : '以下奉仕的志愿已确认。'}\n\n【奉仕项目】\n${evLines.join('\n')}\n\n【志愿信息】\n角色：${b.role}\n对应语言：${b.language}${tmLine('zh')}${contactLine.zh}${b.notes ? '\n留言：' + b.notes : ''}\n\n期待您的到来。\nGLAD応現院`,
+    en: `Dear ${b.name},\n\n${isUpdate ? 'Your registration has been updated as follows.' : 'Your registration has been confirmed.'}\n\n[Services]\n${evLines.join('\n')}\n\n[Registration Details]\nRole: ${b.role}\nLanguage: ${b.language}${tmLine('en')}${contactLine.en}${b.notes ? '\nMessage: ' + b.notes : ''}\n\nWe look forward to welcoming you.\nGLAD Ogen-in`,
   };
   const subject = subjects[currentLang] || subjects.ja;
   const body = bodies[currentLang] || bodies.ja;
