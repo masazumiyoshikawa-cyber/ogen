@@ -232,13 +232,25 @@ tr:hover td{background:var(--paper-warm);}
 <!-- ADMIN LOGIN OVERLAY -->
 <div id="adminOverlay" style="position:fixed;inset:0;background:rgba(26,22,18,0.7);z-index:200;">
   <div style="background:var(--card);border:1px solid var(--border-mid);border-radius:var(--radius);padding:2rem 2rem 1.75rem;width:320px;text-align:center;">
-    <div style="font-family:'Noto Serif JP','Noto Serif SC',serif;font-size:0.9rem;letter-spacing:0.2em;color:var(--ink);margin-bottom:1.25rem;" id="overlay-title">管理者ログイン</div>
-    <input type="email" id="adminEmailInput" style="width:100%;padding:9px 12px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--paper);color:var(--ink);font-size:0.85rem;outline:none;margin-bottom:8px;" placeholder="メールアドレス">
-    <input type="password" id="adminPwInput" style="width:100%;padding:9px 12px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--paper);color:var(--ink);font-size:0.88rem;outline:none;letter-spacing:0.1em;" placeholder="パスワード" onkeydown="if(event.key==='Enter')confirmAdminLogin()">
+    <div style="font-family:'Noto Serif JP','Noto Serif SC',serif;font-size:0.9rem;letter-spacing:0.2em;color:var(--ink);margin-bottom:1.25rem;">管理者ログイン</div>
+    <!-- タブ切替 -->
+    <div style="display:flex;gap:0;margin-bottom:1.25rem;border-bottom:1px solid var(--border-mid);">
+      <button id="tab-pw-btn" onclick="switchLoginTab('pw')" style="flex:1;padding:7px;background:none;border:none;border-bottom:2px solid var(--gold);cursor:pointer;font-size:0.72rem;color:var(--gold-dark);font-family:inherit;letter-spacing:0.06em;">パスワード</button>
+      <button id="tab-su-btn" onclick="switchLoginTab('su')" style="flex:1;padding:7px;background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-size:0.72rem;color:var(--ink-faint);font-family:inherit;letter-spacing:0.06em;">スーパーユーザー</button>
+    </div>
+    <!-- パスワードタブ -->
+    <div id="login-tab-pw">
+      <input type="password" id="adminPwInput" style="width:100%;padding:9px 12px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--paper);color:var(--ink);font-size:0.88rem;outline:none;letter-spacing:0.1em;" placeholder="パスワード" onkeydown="if(event.key==='Enter')confirmAdminLogin()">
+    </div>
+    <!-- スーパーユーザータブ -->
+    <div id="login-tab-su" style="display:none;">
+      <input type="email" id="adminEmailInput" style="width:100%;padding:9px 12px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--paper);color:var(--ink);font-size:0.85rem;outline:none;margin-bottom:8px;" placeholder="メールアドレス">
+      <input type="password" id="adminSuPwInput" style="width:100%;padding:9px 12px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--paper);color:var(--ink);font-size:0.88rem;outline:none;letter-spacing:0.1em;" placeholder="パスワード" onkeydown="if(event.key==='Enter')confirmAdminLogin()">
+    </div>
     <div id="overlay-err" style="color:var(--danger);font-size:0.72rem;margin-top:6px;min-height:1rem;"></div>
     <div style="display:flex;gap:8px;margin-top:1rem;">
-      <button onclick="cancelAdminLogin()" style="flex:1;padding:9px;background:none;border:1px solid var(--border-mid);border-radius:var(--radius);cursor:pointer;font-size:0.78rem;color:var(--ink-mid);font-family:inherit;" id="overlay-cancel">キャンセル</button>
-      <button onclick="confirmAdminLogin()" style="flex:1;padding:9px;background:var(--ink);color:rgba(255,255,255,0.85);border:none;border-radius:var(--radius);cursor:pointer;font-size:0.78rem;font-family:inherit;" id="overlay-ok">ログイン</button>
+      <button onclick="cancelAdminLogin()" style="flex:1;padding:9px;background:none;border:1px solid var(--border-mid);border-radius:var(--radius);cursor:pointer;font-size:0.78rem;color:var(--ink-mid);font-family:inherit;">キャンセル</button>
+      <button onclick="confirmAdminLogin()" id="overlay-ok" style="flex:1;padding:9px;background:var(--ink);color:rgba(255,255,255,0.85);border:none;border-radius:var(--radius);cursor:pointer;font-size:0.78rem;font-family:inherit;">確認</button>
     </div>
   </div>
 </div>
@@ -341,6 +353,23 @@ tr:hover td{background:var(--paper-warm);}
         <span id="admin-user-label"></span>
         <button onclick="adminLogout()" style="margin-left:8px;background:none;border:none;color:var(--gold);font-size:0.7rem;cursor:pointer;text-decoration:underline;font-family:inherit;">ログアウト</button>
       </div>
+    </div>
+
+    <!-- パスワード変更（スーパーユーザーのみ表示） -->
+    <div id="pw-change-section" style="display:none;background:var(--paper-warm);border:1px solid var(--border-mid);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:1.5rem;">
+      <div style="font-family:'Noto Serif JP',serif;font-size:0.8rem;letter-spacing:0.12em;color:var(--ink);margin-bottom:0.75rem;">管理者パスワード変更</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;">
+        <div>
+          <label style="font-size:0.68rem;color:var(--ink-mid);">新しいパスワード</label>
+          <input type="password" id="new-pw-input" style="width:100%;padding:8px 10px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--card);color:var(--ink);font-size:0.85rem;outline:none;" placeholder="新パスワード">
+        </div>
+        <div>
+          <label style="font-size:0.68rem;color:var(--ink-mid);">確認</label>
+          <input type="password" id="new-pw-confirm" style="width:100%;padding:8px 10px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--card);color:var(--ink);font-size:0.85rem;outline:none;" placeholder="再入力">
+        </div>
+        <button onclick="changeAdminPassword()" style="padding:8px 14px;background:var(--ink);color:rgba(255,255,255,0.85);border:none;border-radius:var(--radius);cursor:pointer;font-size:0.75rem;font-family:inherit;white-space:nowrap;">変更</button>
+      </div>
+      <div id="pw-change-err" style="font-size:0.68rem;color:var(--danger);margin-top:6px;min-height:1rem;"></div>
     </div>
 
     <!-- 受付ON/OFF -->
@@ -1207,9 +1236,50 @@ function delBooking(email) {
 }
 
 // ── ADMIN AUTH ──
-// ── 管理者認証（Supabase Auth） ──
+// ── 管理者認証 ──
+const SUPER_USER_EMAIL = 'masazumi.yoshikawa@gmail.com';
+const ADMIN_PW_KEY = PROJECT_CODE + '_' + MONTH_CODE + '_admin_pw';
 let isAdminAuthed = false;
+let isSuperUser = false;
 let pendingTab = null;
+let currentLoginTab = 'pw';
+
+// SHA-256ハッシュ
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+// DBからパスワードハッシュを取得（なければデフォルトを初期化）
+async function getStoredHash() {
+  const res = await fetch(SUPABASE_URL + '/rest/v1/settings?key=eq.' + encodeURIComponent(ADMIN_PW_KEY) + '&select=value', {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY },
+  });
+  const rows = await res.json();
+  if (Array.isArray(rows) && rows.length > 0) return rows[0].value;
+  // 初回：admin1234をハッシュ化して保存
+  const defaultHash = await sha256('admin1234');
+  await fetch(SUPABASE_URL + '/rest/v1/settings', {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates',
+    },
+    body: JSON.stringify({ key: ADMIN_PW_KEY, value: defaultHash }),
+  });
+  return defaultHash;
+}
+
+function switchLoginTab(tab) {
+  currentLoginTab = tab;
+  document.getElementById('login-tab-pw').style.display = tab === 'pw' ? 'block' : 'none';
+  document.getElementById('login-tab-su').style.display = tab === 'su' ? 'block' : 'none';
+  document.getElementById('tab-pw-btn').style.borderBottomColor = tab === 'pw' ? 'var(--gold)' : 'transparent';
+  document.getElementById('tab-pw-btn').style.color = tab === 'pw' ? 'var(--gold-dark)' : 'var(--ink-faint)';
+  document.getElementById('tab-su-btn').style.borderBottomColor = tab === 'su' ? 'var(--gold)' : 'transparent';
+  document.getElementById('tab-su-btn').style.color = tab === 'su' ? 'var(--gold-dark)' : 'var(--ink-faint)';
+  document.getElementById('overlay-err').textContent = '';
+}
 
 function switchTab(tab) {
   if ((tab === 'list' || tab === 'admin') && !isAdminAuthed) {
@@ -1232,43 +1302,64 @@ function _doSwitchTab(tab) {
 }
 
 function showAdminOverlay() {
-  document.getElementById('adminEmailInput').value = '';
+  switchLoginTab('pw');
   document.getElementById('adminPwInput').value = '';
+  document.getElementById('adminEmailInput').value = '';
+  document.getElementById('adminSuPwInput').value = '';
   document.getElementById('overlay-err').textContent = '';
   document.getElementById('adminOverlay').classList.add('open');
-  setTimeout(() => document.getElementById('adminEmailInput').focus(), 50);
+  setTimeout(() => document.getElementById('adminPwInput').focus(), 50);
 }
 
 async function confirmAdminLogin() {
-  const email = document.getElementById('adminEmailInput').value.trim();
-  const password = document.getElementById('adminPwInput').value;
+  const btn = document.getElementById('overlay-ok');
+  btn.textContent = '...';
   document.getElementById('overlay-err').textContent = '';
-  document.getElementById('overlay-ok').textContent = '...';
 
   try {
-    const res = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
-    if (res.ok && data.access_token) {
-      isAdminAuthed = true;
-      document.getElementById('adminOverlay').classList.remove('open');
-      document.getElementById('admin-user-label').textContent = email;
-      if (pendingTab) { _doSwitchTab(pendingTab); pendingTab = null; }
+    if (currentLoginTab === 'pw') {
+      // 通常パスワードログイン（SHA-256照合）
+      const val = document.getElementById('adminPwInput').value;
+      const inputHash = await sha256(val);
+      const storedHash = await getStoredHash();
+      if (inputHash === storedHash) {
+        isAdminAuthed = true;
+        isSuperUser = false;
+        document.getElementById('adminOverlay').classList.remove('open');
+        document.getElementById('admin-user-label').textContent = '管理者';
+        document.getElementById('pw-change-section').style.display = 'none';
+        if (pendingTab) { _doSwitchTab(pendingTab); pendingTab = null; }
+      } else {
+        document.getElementById('overlay-err').textContent = 'パスワードが正しくありません';
+        document.getElementById('adminPwInput').value = '';
+        document.getElementById('adminPwInput').focus();
+      }
     } else {
-      document.getElementById('overlay-err').textContent = 'メールアドレスまたはパスワードが正しくありません';
-      document.getElementById('adminPwInput').value = '';
-      document.getElementById('adminPwInput').focus();
+      // スーパーユーザーログイン（Supabase Auth）
+      const email = document.getElementById('adminEmailInput').value.trim();
+      const password = document.getElementById('adminSuPwInput').value;
+      const res = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
+        method: 'POST',
+        headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (res.ok && data.access_token && email === SUPER_USER_EMAIL) {
+        isAdminAuthed = true;
+        isSuperUser = true;
+        document.getElementById('adminOverlay').classList.remove('open');
+        document.getElementById('admin-user-label').textContent = email;
+        document.getElementById('pw-change-section').style.display = 'block';
+        if (pendingTab) { _doSwitchTab(pendingTab); pendingTab = null; }
+      } else {
+        document.getElementById('overlay-err').textContent = 'ログインできませんでした';
+        document.getElementById('adminSuPwInput').value = '';
+      }
     }
   } catch(e) {
-    document.getElementById('overlay-err').textContent = 'ネットワークエラーが発生しました';
+    document.getElementById('overlay-err').textContent = 'エラーが発生しました';
   }
-  document.getElementById('overlay-ok').textContent = 'ログイン';
+  btn.textContent = '確認';
 }
 
 function cancelAdminLogin() {
@@ -1278,9 +1369,36 @@ function cancelAdminLogin() {
 
 function adminLogout() {
   isAdminAuthed = false;
+  isSuperUser = false;
   document.getElementById('admin-user-label').textContent = '';
+  document.getElementById('pw-change-section').style.display = 'none';
   _doSwitchTab('form');
   showToast('ログアウトしました');
+}
+
+async function changeAdminPassword() {
+  const newPw = document.getElementById('new-pw-input').value;
+  const confirm = document.getElementById('new-pw-confirm').value;
+  const errEl = document.getElementById('pw-change-err');
+  errEl.textContent = '';
+  if (!newPw || newPw.length < 6) { errEl.textContent = '6文字以上で入力してください'; return; }
+  if (newPw !== confirm) { errEl.textContent = 'パスワードが一致しません'; return; }
+  const hash = await sha256(newPw);
+  const res = await fetch(SUPABASE_URL + '/rest/v1/settings', {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates',
+    },
+    body: JSON.stringify({ key: ADMIN_PW_KEY, value: hash }),
+  });
+  if (res.ok) {
+    document.getElementById('new-pw-input').value = '';
+    document.getElementById('new-pw-confirm').value = '';
+    showToast('✓ パスワードを変更しました');
+  } else {
+    errEl.textContent = '保存に失敗しました';
+  }
 }
 
 function showToast(msg) {
