@@ -60,10 +60,6 @@ nav{background:var(--ink);border-top:1px solid rgba(255,255,255,0.07);display:fl
 .event-meta{font-size:0.7rem;color:var(--ink-mid);margin-top:3px;}
 .event-right{display:flex;align-items:center;padding:10px 13px;flex-shrink:0;}
 
-/* PC: イベントグリッドを2列に */
-@media(min-width:601px){
-  .events-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
-}
 .check-mark{width:19px;height:19px;border-radius:50%;border:1.5px solid var(--border-mid);display:flex;align-items:center;justify-content:center;transition:all 0.18s;}
 .event-card.selected .check-mark{background:var(--gold);border-color:var(--gold);}
 .check-mark svg{opacity:0;transition:opacity 0.15s;}
@@ -78,22 +74,11 @@ nav{background:var(--ink);border-top:1px solid rgba(255,255,255,0.07);display:fl
 .form-group{margin-bottom:1rem;}
 label{display:block;font-size:0.72rem;color:var(--ink-mid);letter-spacing:0.08em;margin-bottom:5px;}
 .req{color:var(--gold);margin-left:2px;}
-input[type=text],input[type=email],select,textarea{width:100%;padding:9px 12px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--paper);color:var(--ink);font-family:'Noto Sans JP','Noto Sans SC',sans-serif;font-weight:300;font-size:0.85rem;transition:border-color 0.2s,box-shadow 0.2s;outline:none;-webkit-appearance:none;}
+input[type=text],input[type=email],input[type=number],select,textarea{width:100%;padding:9px 12px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--paper);color:var(--ink);font-family:'Noto Sans JP','Noto Sans SC',sans-serif;font-weight:300;font-size:0.85rem;transition:border-color 0.2s,box-shadow 0.2s;outline:none;-webkit-appearance:none;}
 input:focus,select:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(139,115,85,0.1);background:var(--card);}
 textarea{resize:vertical;min-height:68px;}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 @media(max-width:480px){.form-row{grid-template-columns:1fr;}}
-
-/* PC: 立願フォームを2カラムに */
-@media(min-width:601px){
-  .form-section{display:grid;grid-template-columns:1fr 1fr;gap:0 2rem;align-items:start;}
-  .form-section-title{grid-column:1/-1;}
-  .form-row{grid-column:1/-1;}
-  #tmCountWrap,#tmEscortWrap{grid-column:1/-1;}
-  .form-group:has(#langCheckboxes){grid-column:1/-1;}
-  .form-group:has(#notes){grid-column:1/-1;}
-  .form-group:has(#otherLangWrap){grid-column:1/-1;}
-}
 
 .err{color:var(--danger);font-size:0.75rem;margin-bottom:10px;display:none;}
 .submit-btn{width:100%;padding:13px;background:var(--ink);color:rgba(255,255,255,0.85);border:none;border-radius:var(--radius);font-family:'Noto Serif JP','Noto Serif SC',serif;font-weight:400;font-size:0.85rem;letter-spacing:0.2em;cursor:pointer;transition:background 0.2s;}
@@ -147,7 +132,7 @@ tr:hover td{background:var(--paper-warm);}
 .cb-item input[type=checkbox]{width:15px;height:15px;accent-color:var(--gold);cursor:pointer;flex-shrink:0;}
 
 #adminOverlay{display:none;}
-#adminOverlay.open{display:flex;}
+#adminOverlay.open{display:flex;align-items:center;justify-content:center;}
 .toast-dot{width:7px;height:7px;border-radius:50%;background:var(--gold);flex-shrink:0;}
 
 /* ── MOBILE ── */
@@ -245,7 +230,7 @@ tr:hover td{background:var(--paper-warm);}
 </nav>
 
 <!-- ADMIN LOGIN OVERLAY -->
-<div id="adminOverlay" style="position:fixed;inset:0;background:rgba(26,22,18,0.7);z-index:200;align-items:center;justify-content:center;flex-direction:column;">
+<div id="adminOverlay" style="position:fixed;inset:0;background:rgba(26,22,18,0.7);z-index:200;">
   <div style="background:var(--card);border:1px solid var(--border-mid);border-radius:var(--radius);padding:2rem 2rem 1.75rem;width:300px;text-align:center;">
     <div style="font-family:'Noto Serif JP','Noto Serif SC',serif;font-size:0.9rem;letter-spacing:0.2em;color:var(--ink);margin-bottom:1.25rem;" id="overlay-title"></div>
     <input type="password" id="adminPwInput" style="width:100%;padding:9px 12px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--paper);color:var(--ink);font-size:0.88rem;outline:none;letter-spacing:0.1em;" placeholder="••••••" onkeydown="if(event.key==='Enter')confirmAdminLogin()">
