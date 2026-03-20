@@ -37,7 +37,7 @@ nav{background:var(--ink);border-top:1px solid rgba(255,255,255,0.07);display:fl
 .nav-item.active{color:rgba(200,175,130,0.9);border-bottom-color:var(--gold);}
 
 .panel{display:none;}.panel.active{display:block;}
-.wrap{max-width:680px;margin:0 auto;padding:2.5rem 1.5rem;}
+.wrap{max-width:860px;margin:0 auto;padding:2.5rem 1.5rem;box-sizing:border-box;width:100%;}
 
 .sec-head{text-align:center;margin-bottom:2rem;}
 .sec-title{font-family:'Noto Serif JP','Noto Serif SC',serif;font-weight:400;font-size:0.95rem;letter-spacing:0.22em;color:var(--ink);margin-bottom:0.7rem;}
@@ -47,18 +47,18 @@ nav{background:var(--ink);border-top:1px solid rgba(255,255,255,0.07);display:fl
 .month-label{font-size:0.7rem;color:var(--ink-faint);letter-spacing:0.12em;margin-bottom:0.75rem;padding-left:2px;}
 
 .events-grid{display:flex;flex-direction:column;gap:7px;margin-bottom:1.75rem;}
-.event-card{display:flex;align-items:stretch;background:var(--card);border:1px solid var(--border-mid);border-radius:var(--radius);cursor:pointer;transition:border-color 0.18s,background 0.18s;overflow:hidden;}
+.event-card{display:flex;align-items:stretch;background:var(--card);border:1px solid var(--border-mid);border-radius:var(--radius);cursor:pointer;transition:border-color 0.18s,background 0.18s;overflow:hidden;min-width:0;}
 .event-card:hover{border-color:var(--gold);}
 .event-card.selected{border-color:var(--gold);background:var(--gold-light);}
-.event-date-col{width:62px;flex-shrink:0;background:var(--paper-warm);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px;border-right:1px solid var(--border);transition:background 0.18s;}
+.event-date-col{width:58px;flex-shrink:0;background:var(--paper-warm);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px;border-right:1px solid var(--border);transition:background 0.18s;}
 .event-card.selected .event-date-col{background:rgba(139,115,85,0.14);}
 .event-date-day{font-family:'Noto Serif JP','Noto Serif SC',serif;font-size:1.35rem;line-height:1;color:var(--ink);}
 .event-date-wd{font-size:0.6rem;color:var(--ink-faint);letter-spacing:0.06em;margin-top:3px;}
 .event-date-wd.sat{color:#4a6080;}.event-date-wd.sun{color:#7a3a30;}
-.event-body{flex:1;padding:10px 13px;}
-.event-name{font-family:'Noto Serif JP','Noto Serif SC',serif;font-size:0.88rem;color:var(--ink);letter-spacing:0.08em;}
-.event-meta{font-size:0.7rem;color:var(--ink-mid);margin-top:3px;}
-.event-right{display:flex;align-items:center;padding:10px 13px;}
+.event-body{flex:1;padding:10px 10px;min-width:0;overflow:hidden;}
+.event-name{font-family:'Noto Serif JP','Noto Serif SC',serif;font-size:0.85rem;color:var(--ink);letter-spacing:0.04em;line-height:1.5;word-break:break-all;}
+.event-meta{font-size:0.68rem;color:var(--ink-mid);margin-top:3px;}
+.event-right{display:flex;align-items:center;padding:10px 10px;flex-shrink:0;}
 .check-mark{width:19px;height:19px;border-radius:50%;border:1.5px solid var(--border-mid);display:flex;align-items:center;justify-content:center;transition:all 0.18s;}
 .event-card.selected .check-mark{background:var(--gold);border-color:var(--gold);}
 .check-mark svg{opacity:0;transition:opacity 0.15s;}
@@ -130,6 +130,8 @@ tr:hover td{background:var(--paper-warm);}
 .cb-item{display:flex;align-items:center;gap:5px;font-size:0.82rem;color:var(--ink);cursor:pointer;letter-spacing:0.04em;}
 .cb-item input[type=checkbox]{width:15px;height:15px;accent-color:var(--gold);cursor:pointer;flex-shrink:0;}
 
+#adminOverlay{display:none;}
+#adminOverlay.open{display:flex;}
 .toast-dot{width:7px;height:7px;border-radius:50%;background:var(--gold);flex-shrink:0;}
 
 /* ── MOBILE ── */
@@ -138,37 +140,53 @@ tr:hover td{background:var(--paper-warm);}
   .lang-btn{padding:4px 10px;font-size:0.7rem;}
   header{padding:1.25rem 1rem 1.5rem;}
   .header-mon{width:36px;height:36px;margin-bottom:0.75rem;}
-  header h1{font-size:1rem;letter-spacing:0.15em;}
+  header h1{font-size:0.95rem;letter-spacing:0.1em;}
   .header-sub{font-size:0.68rem;letter-spacing:0.1em;}
   .header-period{font-size:0.72rem;}
   nav{justify-content:stretch;}
-  .nav-item{flex:1;text-align:center;padding:0.75rem 0.5rem;font-size:0.68rem;letter-spacing:0.06em;}
-  .wrap{padding:1.5rem 1rem;}
-  .sec-title{font-size:0.85rem;letter-spacing:0.14em;}
-  .event-date-col{width:52px;}
-  .event-date-day{font-size:1.15rem;}
-  .event-body{padding:9px 10px;}
-  .event-name{font-size:0.82rem;}
-  .event-meta{font-size:0.66rem;}
-  .event-right{padding:9px 10px;}
-  .sel-summary{flex-direction:column;align-items:flex-start;gap:4px;padding:10px 14px;}
-  .form-section{padding:1.25rem 1rem;}
-  input[type=text],input[type=email],input[type=number],select,textarea{font-size:1rem;}
-  .submit-btn{font-size:0.82rem;padding:15px;letter-spacing:0.12em;}
-  .confirm-block{padding:2rem 1.25rem;}
+  .nav-item{flex:1;text-align:center;padding:0.75rem 0.25rem;font-size:0.65rem;letter-spacing:0.04em;}
+  .wrap{padding:1.25rem 0.85rem;}
+  .sec-title{font-size:0.85rem;letter-spacing:0.1em;}
+  /* イベントカード */
+  .event-date-col{width:48px;}
+  .event-date-day{font-size:1.1rem;}
+  .event-body{padding:8px 8px;}
+  .event-name{font-size:0.78rem;letter-spacing:0.02em;}
+  .event-meta{font-size:0.64rem;}
+  .event-right{padding:8px 8px;}
+  .check-mark{width:17px;height:17px;}
+  /* サマリー */
+  .sel-summary{flex-direction:column;align-items:flex-start;gap:4px;padding:10px 12px;}
+  /* フォーム */
+  .form-section{padding:1rem 0.85rem;}
+  .form-section-title{font-size:0.7rem;}
+  .form-group{margin-bottom:0.85rem;}
+  label{font-size:0.7rem;}
+  input[type=text],input[type=email],input[type=number],select,textarea{font-size:1rem;padding:8px 10px;}
+  .checkbox-group{gap:5px 10px;}
+  .cb-item{font-size:0.8rem;}
+  .submit-btn{font-size:0.82rem;padding:15px;letter-spacing:0.1em;}
+  /* 確認画面 */
+  .confirm-block{padding:1.75rem 1rem;}
+  .confirm-event-item{font-size:0.72rem;}
+  /* 統計 */
   .stats-row{grid-template-columns:1fr 1fr;}
   .stat-n{font-size:1.5rem;}
-  .tbl-wrap{margin:0 -1rem;padding:0 1rem;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  /* テーブル */
+  .tbl-wrap{margin:0 -0.85rem;padding:0 0.85rem;overflow-x:auto;-webkit-overflow-scrolling:touch;}
   table{font-size:0.68rem;min-width:700px;}
   th,td{padding:5px 7px;}
-  .toast{left:1rem;right:1rem;bottom:1rem;max-width:none;}
-  #adminOverlay > div{width:calc(100% - 3rem);padding:1.75rem 1.25rem;}
+  /* リスト */
   .list-filter{gap:4px;}
-  .filter-btn{padding:4px 9px;font-size:0.65rem;}
+  .filter-btn{padding:4px 8px;font-size:0.64rem;}
   .att-group-label{font-size:0.72rem;}
   .attendee-item{gap:8px;padding:8px 0;}
   .att-avatar{width:26px;height:26px;font-size:0.62rem;}
   .att-name{font-size:0.8rem;}
+  /* その他 */
+  .toast{left:1rem;right:1rem;bottom:1rem;max-width:none;}
+  #adminOverlay > div{width:calc(100% - 2rem);padding:1.5rem 1rem;}
+  .month-label{font-size:0.65rem;}
 }
 </style>
 </head>
@@ -211,7 +229,7 @@ tr:hover td{background:var(--paper-warm);}
 </nav>
 
 <!-- ADMIN LOGIN OVERLAY -->
-<div id="adminOverlay" style="display:none;position:fixed;inset:0;background:rgba(26,22,18,0.7);z-index:200;align-items:center;justify-content:center;">
+<div id="adminOverlay" style="position:fixed;inset:0;background:rgba(26,22,18,0.7);z-index:200;align-items:center;justify-content:center;flex-direction:column;">
   <div style="background:var(--card);border:1px solid var(--border-mid);border-radius:var(--radius);padding:2rem 2rem 1.75rem;width:300px;text-align:center;">
     <div style="font-family:'Noto Serif JP','Noto Serif SC',serif;font-size:0.9rem;letter-spacing:0.2em;color:var(--ink);margin-bottom:1.25rem;" id="overlay-title"></div>
     <input type="password" id="adminPwInput" style="width:100%;padding:9px 12px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--paper);color:var(--ink);font-size:0.88rem;outline:none;letter-spacing:0.1em;" placeholder="••••••" onkeydown="if(event.key==='Enter')confirmAdminLogin()">
@@ -889,89 +907,94 @@ function makeAttItem(b, i, evIndex) {
 }
 
 function downloadExcel() {
-  const wb = XLSX.utils.book_new();
-  const ws_data = [];
-
-  // ── 全法要を対象（ご奉仕者がいない法要も含む）
-  const evList = EVENTS;
   if (!bookings.length) { alert('立願データがありません'); return; }
 
-  const COL_W = 1; // 各法要1列のみ
-  const GAP   = 0;
+  const wb = XLSX.utils.book_new();
+  const ws_data = [];
+  const merges = [];
 
-  // 行1: 法要タイトル
-  const row1 = [];
-  evList.forEach((ev, ei) => {
-    const col = ei * (COL_W + GAP);
-    while (row1.length < col) row1.push('');
-    const label = ev.day + '（' + (wd(ev)||'') + '） ' + (ev.name[currentLang]||ev.name.ja);
-    row1.push(label);
-  });
-  ws_data.push(row1);
-
-  // 行2: C+A人数・全員人数
-  const row2 = [];
-  evList.forEach((ev, ei) => {
-    const col = ei * (COL_W + GAP);
-    while (row2.length < col) row2.push('');
-    const evB = sortByRole(bookings.filter(b => b.eventIds && b.eventIds.includes(ev.id)));
-    const ca = evB.filter(b => b.role === 'センター' || b.role === 'アシスタント').length;
-    row2.push('C+A: ' + ca + '名　全員: ' + evB.length + '名');
-  });
-  ws_data.push(row2);
-
-  // 行3以降: ご奉仕者名（各法要列に縦並び）
-  const columns = evList.map(ev =>
-    sortByRole(bookings.filter(b => b.eventIds && b.eventIds.includes(ev.id)))
-  );
-  const maxRows = Math.max(...columns.map(c => c.length));
-
-  for (let r = 0; r < maxRows; r++) {
-    const row = [];
-    columns.forEach((col, ei) => {
-      const colIdx = ei * (COL_W + GAP);
-      while (row.length < colIdx) row.push('');
-      if (r < col.length) {
-        const b = col[r];
-        const prefix = ROLE_PREFIX[b.role] !== undefined ? ROLE_PREFIX[b.role] : '';
-        let name = prefix + b.name + langTag(b.language);
-        if (TM_ROLES.includes(b.role) && b.tmPrev !== null && b.tmPrev !== undefined) {
-          const evIdx = b.eventIds ? b.eventIds.indexOf(evList[ei].id) : 0;
-          const count = b.tmPrev + evIdx + 1;
-          if (b.role === 'TM(在日)' && b.tmEscort) {
-            name += ' (TM' + count + '回目、付き添い:' + b.tmEscort + ')';
-          } else {
-            name += ' (TM' + count + '回目)';
-          }
-        } else if (b.role === 'TM(在日)' && b.tmEscort) {
-          name += ' (付き添い:' + b.tmEscort + ')';
-        }
-        row.push(name);
-      } else {
-        row.push('');
-      }
-    });
-    ws_data.push(row);
+  // 言語略称（[]なし）
+  function langShort(langStr) {
+    if (!langStr) return '';
+    return langStr.split('・').map(l => LANG_ABBR[l] || '他').join('');
   }
 
-  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  // 役割表示（センター→C、アシスタント→A、TM系→回数付き）
+  function roleShort(b, evId) {
+    if (b.role === 'センター') return 'センター';
+    if (b.role === 'アシスタント') return 'アシスタント';
+    if (b.role === '在日') return '在日';
+    if (b.role === '日本人') return '日本人';
+    if (TM_ROLES.includes(b.role) && b.tmPrev !== null && b.tmPrev !== undefined) {
+      const evIdx = b.eventIds ? b.eventIds.indexOf(evId) : 0;
+      return 'TM' + (b.tmPrev + evIdx + 1) + '回目';
+    }
+    return b.role || '';
+  }
 
-  // 列幅設定
-  const colWidths = [];
-  evList.forEach(() => {
-    colWidths.push({ wch: 28 });
-  });
-  ws['!cols'] = colWidths;
+  // 備考（ご伝言・付き添い）
+  function備考(b) {
+    const parts = [];
+    if (b.role === 'TM(在日)' && b.tmEscort) parts.push('付き添い:' + b.tmEscort);
+    if (b.notes) parts.push(b.notes);
+    return parts.join('、');
+  }
 
-  // 行1・行2をボールド
-  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-  for (let C = range.s.c; C <= range.e.c; C++) {
-    ['0','1'].forEach(R => {
-      const addr = XLSX.utils.encode_cell({r: parseInt(R), c: C});
-      if (ws[addr]) {
-        ws[addr].s = { font: { bold: true } };
+  // ヘッダー行
+  ws_data.push(['法要', '人数', '役割', '氏名', '言語', '連絡担当', '備考']);
+
+  let currentRow = 1; // 0-indexed、ヘッダーが0行目
+
+  EVENTS.forEach(ev => {
+    const evB = sortByRole(bookings.filter(b => b.eventIds && b.eventIds.includes(ev.id)));
+    const evLabel = ev.day + '（' + (wd(ev)||'') + '） ' + (ev.name[currentLang]||ev.name.ja);
+    const ca = evB.filter(b => b.role === 'センター' || b.role === 'アシスタント').length;
+    const countLabel = 'C+A: ' + ca + ' / 全: ' + evB.length;
+    const rowCount = Math.max(evB.length, 1);
+
+    if (evB.length === 0) {
+      ws_data.push([evLabel, countLabel, '', '', '', '', '']);
+      currentRow++;
+    } else {
+      evB.forEach((b, i) => {
+        ws_data.push([
+          i === 0 ? evLabel : '',
+          i === 0 ? countLabel : '',
+          roleShort(b, ev.id),
+          b.name,
+          langShort(b.language),
+          b.contact || '',
+          備考(b),
+        ]);
+      });
+
+      // 法要・人数セルを結合
+      if (rowCount > 1) {
+        merges.push({ s:{r:currentRow, c:0}, e:{r:currentRow+rowCount-1, c:0} });
+        merges.push({ s:{r:currentRow, c:1}, e:{r:currentRow+rowCount-1, c:1} });
       }
-    });
+      currentRow += rowCount;
+    }
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  ws['!merges'] = merges;
+
+  // 列幅
+  ws['!cols'] = [
+    { wch: 32 }, // 法要
+    { wch: 14 }, // 人数
+    { wch: 12 }, // 役割
+    { wch: 14 }, // 氏名
+    { wch: 10 }, // 言語
+    { wch: 10 }, // 連絡担当
+    { wch: 24 }, // 備考
+  ];
+
+  // ヘッダー行をボールド
+  for (let C = 0; C < 7; C++) {
+    const addr = XLSX.utils.encode_cell({r:0, c:C});
+    if (ws[addr]) ws[addr].s = { font: { bold: true } };
   }
 
   XLSX.utils.book_append_sheet(wb, ws, 'ご奉仕者一覧');
@@ -1082,7 +1105,7 @@ function showAdminOverlay() {
   document.getElementById('adminPwInput').value = '';
   document.getElementById('overlay-err').textContent = '';
   const ov = document.getElementById('adminOverlay');
-  ov.style.display = 'flex';
+  ov.classList.add('open');
   setTimeout(() => document.getElementById('adminPwInput').focus(), 50);
 }
 
@@ -1090,7 +1113,7 @@ function confirmAdminLogin() {
   const val = document.getElementById('adminPwInput').value;
   if (val === ADMIN_PASSWORD) {
     isAdminAuthed = true;
-    document.getElementById('adminOverlay').style.display = 'none';
+    document.getElementById('adminOverlay').classList.remove('open');
     if (pendingTab) { _doSwitchTab(pendingTab); pendingTab = null; }
   } else {
     document.getElementById('overlay-err').textContent = 'パスワードが正しくありません';
@@ -1100,7 +1123,7 @@ function confirmAdminLogin() {
 }
 
 function cancelAdminLogin() {
-  document.getElementById('adminOverlay').style.display = 'none';
+  document.getElementById('adminOverlay').classList.remove('open');
   pendingTab = null;
 }
 
