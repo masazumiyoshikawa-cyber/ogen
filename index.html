@@ -351,6 +351,7 @@ tr:hover td{background:var(--paper-warm);}
 <script>
 // ── PROJECT CODE ──
 const PROJECT_CODE = 'GLAD';
+const MONTH_CODE = '2026-04'; // ← 毎月ここを変更してください
 
 // ── I18N ──
 const I18N = {
@@ -746,6 +747,7 @@ function submitForm() {
     contact: document.getElementById('contact').value.trim(),
     notes: document.getElementById('notes').value.trim(),
     eventIds: [...selected],
+    month: MONTH_CODE,
     at: now.toLocaleString('ja-JP')
   };
   const isUpdate = bookings.some(bk => bk.email === email);
@@ -993,15 +995,11 @@ function downloadExcel() {
   const ws = XLSX.utils.aoa_to_sheet(ws_data);
   ws['!merges'] = merges;
 
-  // ヘッダー行を固定（1行目でスクロール固定）
-  ws['!sheetViews'] = [{
-    state: 'frozen',
-    ySplit: 1,
-    xSplit: 0,
-    topLeftCell: 'A2',
-    activePane: 'bottomLeft',
-    pane: [{ ySplit: 1, topLeftCell: 'A2', activePane: 'bottomLeft', state: 'frozen' }],
-  }];
+  // ヘッダー行を固定（XMLを直接注入）
+  ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+  // xlsx-js-styleはsheetViewsをXMLとして直接設定
+  if (!ws['!xml']) ws['!xml'] = {};
+  ws['!sheetView'] = '<sheetView tabSelected="1" workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft"/></sheetView>';
 
   // 列幅
   ws['!cols'] = [
@@ -1115,7 +1113,7 @@ function renderAdmin() {
 
 function delBooking(email) {
   if (!confirm(I18N[currentLang].confirmDel)) return;
-  fetch(SUPABASE_URL + '/rest/v1/reservations?email=eq.' + encodeURIComponent(email), {
+  fetch(SUPABASE_URL + '/rest/v1/reservations?email=eq.' + encodeURIComponent(email) + '&month=eq.' + MONTH_CODE, {
     method: 'DELETE',
     headers: {
       'apikey': SUPABASE_KEY,
@@ -1209,6 +1207,7 @@ function saveToDb(b, evLines, isUpdate) {
     notes:     b.notes || '',
     status:    isUpdate ? '更新' : '新規',
     project:   PROJECT_CODE,
+    month:     MONTH_CODE,
   };
   const headers = {
     'apikey': SUPABASE_KEY,
@@ -1216,7 +1215,7 @@ function saveToDb(b, evLines, isUpdate) {
     'Content-Type': 'application/json',
     'Prefer': 'return=minimal',
   };
-  fetch(SUPABASE_URL + '/rest/v1/reservations?email=eq.' + encodeURIComponent(b.email), {
+  fetch(SUPABASE_URL + '/rest/v1/reservations?email=eq.' + encodeURIComponent(b.email) + '&month=eq.' + MONTH_CODE, {
     method: 'DELETE', headers,
   })
   .then(() => fetch(SUPABASE_URL + '/rest/v1/reservations', {
@@ -1266,32 +1265,32 @@ function seedDemoData() {
   if (!confirm('デモデータ（20件）を投入します。よろしいですか？')) return;
   const DEMO = [
     // ── センター ──
-    {name:'田中 恵子', email:'tanaka.keiko@demo.com', role:'センター', language:'英語・中国語', contact:'木村 信夫', events:'4日（土） 廻向法要 / 11日（土） 正輪会 / 15日（水） 常楽会', event_ids:JSON.stringify(['e01','e04','e06']), notes:'', status:'新規', project:'GLAD', tm_prev:null, tm_escort:'', at:'2026/04/01 9:00:00'},
-    {name:'山本 浩二', email:'yamamoto.koji@demo.com', role:'センター', language:'スペイン語・ポルトガル語', contact:'木村 信夫', events:'8日（水） 真導院様お誕生89年セレモニー / 18日（土） 真如済摂会', event_ids:JSON.stringify(['e02','e07']), notes:'', status:'新規', project:'GLAD', tm_prev:null, tm_escort:'', at:'2026/04/01 10:15:00'},
-    {name:'前田 光子', email:'maeda.mitsuko@demo.com', role:'センター', language:'日本語・韓国語', contact:'', events:'9日（木） 一如祈念 / 21日（火） 一如祈念 / 28日（火） 法前供', event_ids:JSON.stringify(['e03','e10','e13']), notes:'韓国語メンバーの担当です', status:'新規', project:'GLAD', tm_prev:null, tm_escort:'', at:'2026/04/01 13:00:00'},
+    {name:'田中 恵子', email:'tanaka.keiko@demo.com', role:'センター', language:'英語・中国語', contact:'木村 信夫', events:'4日（土） 廻向法要 / 11日（土） 正輪会 / 15日（水） 常楽会', event_ids:JSON.stringify(['e01','e04','e06']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/01 9:00:00'},
+    {name:'山本 浩二', email:'yamamoto.koji@demo.com', role:'センター', language:'スペイン語・ポルトガル語', contact:'木村 信夫', events:'8日（水） 真導院様お誕生89年セレモニー / 18日（土） 真如済摂会', event_ids:JSON.stringify(['e02','e07']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/01 10:15:00'},
+    {name:'前田 光子', email:'maeda.mitsuko@demo.com', role:'センター', language:'日本語・韓国語', contact:'', events:'9日（木） 一如祈念 / 21日（火） 一如祈念 / 28日（火） 法前供', event_ids:JSON.stringify(['e03','e10','e13']), notes:'韓国語メンバーの担当です', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/01 13:00:00'},
     // ── アシスタント ──
-    {name:'佐藤 美佳', email:'sato.mika@demo.com', role:'アシスタント', language:'英語', contact:'田中 恵子', events:'4日（土） 廻向法要 / 9日（木） 一如祈念 / 28日（火） 法前供', event_ids:JSON.stringify(['e01','e03','e13']), notes:'よろしくお願いします', status:'新規', project:'GLAD', tm_prev:null, tm_escort:'', at:'2026/04/01 11:30:00'},
-    {name:'鈴木 隆', email:'suzuki.takashi@demo.com', role:'アシスタント', language:'中国語・英語', contact:'山本 浩二', events:'15日（水） 常楽会 / 24日（金） 廻向法要', event_ids:JSON.stringify(['e06','e11']), notes:'', status:'新規', project:'GLAD', tm_prev:null, tm_escort:'', at:'2026/04/02 8:45:00'},
-    {name:'渡辺 香', email:'watanabe.kaori@demo.com', role:'アシスタント', language:'広東語・中国語', contact:'', events:'11日（土） 正輪会 / 20日（月） 笠法様法楽法要 / 25日（土） One Heart お誕生セレモニー', event_ids:JSON.stringify(['e04','e09','e12']), notes:'', status:'新規', project:'GLAD', tm_prev:null, tm_escort:'', at:'2026/04/02 10:00:00'},
+    {name:'佐藤 美佳', email:'sato.mika@demo.com', role:'アシスタント', language:'英語', contact:'田中 恵子', events:'4日（土） 廻向法要 / 9日（木） 一如祈念 / 28日（火） 法前供', event_ids:JSON.stringify(['e01','e03','e13']), notes:'よろしくお願いします', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/01 11:30:00'},
+    {name:'鈴木 隆', email:'suzuki.takashi@demo.com', role:'アシスタント', language:'中国語・英語', contact:'山本 浩二', events:'15日（水） 常楽会 / 24日（金） 廻向法要', event_ids:JSON.stringify(['e06','e11']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/02 8:45:00'},
+    {name:'渡辺 香', email:'watanabe.kaori@demo.com', role:'アシスタント', language:'広東語・中国語', contact:'', events:'11日（土） 正輪会 / 20日（月） 笠法様法楽法要 / 25日（土） One Heart お誕生セレモニー', event_ids:JSON.stringify(['e04','e09','e12']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/02 10:00:00'},
     // ── 在日 ──
-    {name:'Maria Silva', email:'maria.silva@demo.com', role:'在日', language:'ポルトガル語・英語', contact:'山本 浩二', events:'4日（土） 廻向法要 / 20日（月） 笠法様法楽法要', event_ids:JSON.stringify(['e01','e09']), notes:'', status:'新規', project:'GLAD', tm_prev:null, tm_escort:'', at:'2026/04/02 14:00:00'},
-    {name:'Carlos Mendoza', email:'carlos.mendoza@demo.com', role:'在日', language:'スペイン語', contact:'山本 浩二', events:'11日（土） 正輪会 / 25日（土） One Heart お誕生セレモニー', event_ids:JSON.stringify(['e04','e12']), notes:'', status:'新規', project:'GLAD', tm_prev:null, tm_escort:'', at:'2026/04/02 15:20:00'},
-    {name:'박 민준', email:'park.minjun@demo.com', role:'在日', language:'韓国語・日本語', contact:'前田 光子', events:'4日（土） 廻向法要 / 15日（水） 常楽会', event_ids:JSON.stringify(['e01','e06']), notes:'', status:'新規', project:'GLAD', tm_prev:null, tm_escort:'', at:'2026/04/03 8:00:00'},
-    {name:'陳 偉明', email:'chan.waimeng@demo.com', role:'在日', language:'広東語・中国語', contact:'渡辺 香', events:'11日（土） 正輪会 / 24日（金） 廻向法要', event_ids:JSON.stringify(['e04','e11']), notes:'広東語のみ希望', status:'新規', project:'GLAD', tm_prev:null, tm_escort:'', at:'2026/04/03 9:00:00'},
+    {name:'Maria Silva', email:'maria.silva@demo.com', role:'在日', language:'ポルトガル語・英語', contact:'山本 浩二', events:'4日（土） 廻向法要 / 20日（月） 笠法様法楽法要', event_ids:JSON.stringify(['e01','e09']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/02 14:00:00'},
+    {name:'Carlos Mendoza', email:'carlos.mendoza@demo.com', role:'在日', language:'スペイン語', contact:'山本 浩二', events:'11日（土） 正輪会 / 25日（土） One Heart お誕生セレモニー', event_ids:JSON.stringify(['e04','e12']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/02 15:20:00'},
+    {name:'박 민준', email:'park.minjun@demo.com', role:'在日', language:'韓国語・日本語', contact:'前田 光子', events:'4日（土） 廻向法要 / 15日（水） 常楽会', event_ids:JSON.stringify(['e01','e06']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/03 8:00:00'},
+    {name:'陳 偉明', email:'chan.waimeng@demo.com', role:'在日', language:'広東語・中国語', contact:'渡辺 香', events:'11日（土） 正輪会 / 24日（金） 廻向法要', event_ids:JSON.stringify(['e04','e11']), notes:'広東語のみ希望', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/03 9:00:00'},
     // ── 日本人 ──
-    {name:'高橋 誠', email:'takahashi.makoto@demo.com', role:'日本人', language:'英語', contact:'佐藤 美佳', events:'9日（木） 一如祈念 / 21日（火） 一如祈念', event_ids:JSON.stringify(['e03','e10']), notes:'', status:'新規', project:'GLAD', tm_prev:null, tm_escort:'', at:'2026/04/03 9:10:00'},
-    {name:'伊藤 由美', email:'ito.yumi@demo.com', role:'日本人', language:'フランス語・英語', contact:'', events:'4日（土） 廻向法要 / 15日（水） 常楽会 / 28日（火） 法前供', event_ids:JSON.stringify(['e01','e06','e13']), notes:'フランス語対応できます', status:'新規', project:'GLAD', tm_prev:null, tm_escort:'', at:'2026/04/03 10:00:00'},
-    {name:'松本 大介', email:'matsumoto.daisuke@demo.com', role:'日本人', language:'スペイン語・英語', contact:'鈴木 隆', events:'8日（水） 真導院様お誕生89年セレモニー / 18日（土） 真如済摂会', event_ids:JSON.stringify(['e02','e07']), notes:'', status:'新規', project:'GLAD', tm_prev:null, tm_escort:'', at:'2026/04/03 14:00:00'},
+    {name:'高橋 誠', email:'takahashi.makoto@demo.com', role:'日本人', language:'英語', contact:'佐藤 美佳', events:'9日（木） 一如祈念 / 21日（火） 一如祈念', event_ids:JSON.stringify(['e03','e10']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/03 9:10:00'},
+    {name:'伊藤 由美', email:'ito.yumi@demo.com', role:'日本人', language:'フランス語・英語', contact:'', events:'4日（土） 廻向法要 / 15日（水） 常楽会 / 28日（火） 法前供', event_ids:JSON.stringify(['e01','e06','e13']), notes:'フランス語対応できます', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/03 10:00:00'},
+    {name:'松本 大介', email:'matsumoto.daisuke@demo.com', role:'日本人', language:'スペイン語・英語', contact:'鈴木 隆', events:'8日（水） 真導院様お誕生89年セレモニー / 18日（土） 真如済摂会', event_ids:JSON.stringify(['e02','e07']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/03 14:00:00'},
     // ── TM(在日) 付き添いあり ──
-    {name:'Ana Oliveira', email:'ana.oliveira@demo.com', role:'TM(在日)', language:'ポルトガル語', contact:'Maria Silva', events:'4日（土） 廻向法要', event_ids:JSON.stringify(['e01']), notes:'', status:'新規', project:'GLAD', tm_prev:2, tm_escort:'Pedro Oliveira', at:'2026/04/03 11:00:00'},
-    {name:'Lucia Gomez', email:'lucia.gomez@demo.com', role:'TM(在日)', language:'スペイン語・英語', contact:'Carlos Mendoza', events:'11日（土） 正輪会 / 24日（金） 廻向法要', event_ids:JSON.stringify(['e04','e11']), notes:'', status:'新規', project:'GLAD', tm_prev:5, tm_escort:'Roberto Gomez', at:'2026/04/04 9:30:00'},
-    {name:'김 지수', email:'kim.jisu@demo.com', role:'TM(在日)', language:'韓国語', contact:'박 민준', events:'15日（水） 常楽会 / 25日（土） One Heart お誕生セレモニー', event_ids:JSON.stringify(['e06','e12']), notes:'', status:'新規', project:'GLAD', tm_prev:1, tm_escort:'김 영호', at:'2026/04/04 10:00:00'},
+    {name:'Ana Oliveira', email:'ana.oliveira@demo.com', role:'TM(在日)', language:'ポルトガル語', contact:'Maria Silva', events:'4日（土） 廻向法要', event_ids:JSON.stringify(['e01']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:2, tm_escort:'Pedro Oliveira', at:'2026/04/03 11:00:00'},
+    {name:'Lucia Gomez', email:'lucia.gomez@demo.com', role:'TM(在日)', language:'スペイン語・英語', contact:'Carlos Mendoza', events:'11日（土） 正輪会 / 24日（金） 廻向法要', event_ids:JSON.stringify(['e04','e11']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:5, tm_escort:'Roberto Gomez', at:'2026/04/04 9:30:00'},
+    {name:'김 지수', email:'kim.jisu@demo.com', role:'TM(在日)', language:'韓国語', contact:'박 민준', events:'15日（水） 常楽会 / 25日（土） One Heart お誕生セレモニー', event_ids:JSON.stringify(['e06','e12']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:1, tm_escort:'김 영호', at:'2026/04/04 10:00:00'},
     // ── TM(在日) 付き添いなし ──
-    {name:'Wei Chen', email:'wei.chen@demo.com', role:'TM(在日)', language:'中国語', contact:'渡辺 香', events:'15日（水） 常楽会', event_ids:JSON.stringify(['e06']), notes:'', status:'新規', project:'GLAD', tm_prev:0, tm_escort:'', at:'2026/04/04 10:45:00'},
+    {name:'Wei Chen', email:'wei.chen@demo.com', role:'TM(在日)', language:'中国語', contact:'渡辺 香', events:'15日（水） 常楽会', event_ids:JSON.stringify(['e06']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:0, tm_escort:'', at:'2026/04/04 10:45:00'},
     // ── TM(日本人) ──
-    {name:'中村 健', email:'nakamura.ken@demo.com', role:'TM(日本人)', language:'英語・中国語', contact:'田中 恵子', events:'4日（土） 廻向法要 / 11日（土） 正輪会 / 15日（水） 常楽会', event_ids:JSON.stringify(['e01','e04','e06']), notes:'', status:'新規', project:'GLAD', tm_prev:8, tm_escort:'', at:'2026/04/04 12:00:00'},
-    {name:'小林 奈緒', email:'kobayashi.nao@demo.com', role:'TM(日本人)', language:'フランス語', contact:'', events:'9日（木） 一如祈念 / 20日（月） 笠法様法楽法要 / 28日（火） 法前供', event_ids:JSON.stringify(['e03','e09','e13']), notes:'フランス語のみ対応', status:'新規', project:'GLAD', tm_prev:3, tm_escort:'', at:'2026/04/05 8:00:00'},
-    {name:'森 拓也', email:'mori.takuya@demo.com', role:'TM(日本人)', language:'スペイン語・ポルトガル語', contact:'鈴木 隆', events:'4日（土） 廻向法要 / 24日（金） 廻向法要 / 28日（火） 法前供', event_ids:JSON.stringify(['e01','e11','e13']), notes:'', status:'新規', project:'GLAD', tm_prev:12, tm_escort:'', at:'2026/04/05 9:30:00'},
+    {name:'中村 健', email:'nakamura.ken@demo.com', role:'TM(日本人)', language:'英語・中国語', contact:'田中 恵子', events:'4日（土） 廻向法要 / 11日（土） 正輪会 / 15日（水） 常楽会', event_ids:JSON.stringify(['e01','e04','e06']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:8, tm_escort:'', at:'2026/04/04 12:00:00'},
+    {name:'小林 奈緒', email:'kobayashi.nao@demo.com', role:'TM(日本人)', language:'フランス語', contact:'', events:'9日（木） 一如祈念 / 20日（月） 笠法様法楽法要 / 28日（火） 法前供', event_ids:JSON.stringify(['e03','e09','e13']), notes:'フランス語のみ対応', status:'新規', project:'GLAD', month:'2026-04', tm_prev:3, tm_escort:'', at:'2026/04/05 8:00:00'},
+    {name:'森 拓也', email:'mori.takuya@demo.com', role:'TM(日本人)', language:'スペイン語・ポルトガル語', contact:'鈴木 隆', events:'4日（土） 廻向法要 / 24日（金） 廻向法要 / 28日（火） 法前供', event_ids:JSON.stringify(['e01','e11','e13']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:12, tm_escort:'', at:'2026/04/05 9:30:00'},
   ];
   const headers = {
     'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY,
@@ -1301,7 +1300,7 @@ function seedDemoData() {
     showToast('デモデータを投入中...');
     let ok = 0;
     for (const d of DEMO) {
-      await fetch(SUPABASE_URL + '/rest/v1/reservations?email=eq.' + encodeURIComponent(d.email), {method:'DELETE', headers});
+      await fetch(SUPABASE_URL + '/rest/v1/reservations?email=eq.' + encodeURIComponent(d.email) + '&month=eq.' + MONTH_CODE, {method:'DELETE', headers});
       const res = await fetch(SUPABASE_URL + '/rest/v1/reservations', {method:'POST', headers, body:JSON.stringify(d)});
       if (res.ok) ok++;
     }
@@ -1311,7 +1310,7 @@ function seedDemoData() {
 }
 
 function loadFromDb() {
-  fetch(SUPABASE_URL + '/rest/v1/reservations?select=*&order=at.asc', {
+  fetch(SUPABASE_URL + '/rest/v1/reservations?select=*&month=eq.' + MONTH_CODE + '&order=at.asc', {
     headers: {
       'apikey': SUPABASE_KEY,
       'Authorization': 'Bearer ' + SUPABASE_KEY,
