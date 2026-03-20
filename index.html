@@ -941,7 +941,7 @@ function downloadExcel() {
   }
 
   // 備考（ご伝言・付き添い）
-  function備考(b) {
+  function getBiko(b) {
     const parts = [];
     if (b.role === 'TM(在日)' && b.tmEscort) parts.push('付き添い:' + b.tmEscort);
     if (b.notes) parts.push(b.notes);
@@ -972,7 +972,7 @@ function downloadExcel() {
           b.name,
           langShort(b.language),
           b.contact || '',
-          備考(b),
+          getBiko(b),
         ]);
       });
 
