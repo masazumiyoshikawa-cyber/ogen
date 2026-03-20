@@ -1095,160 +1095,122 @@ function downloadExcel() {
   if (!bookings.length) { alert('立願データがありません'); return; }
 
   const wb = XLSX.utils.book_new();
-  const ws_data = [];
+  const rows = []; // { cells:[], isAdded, isCancelled }
   const merges = [];
+  const groupStartRows = [];
 
-  // 言語略称（[]なし）
-  function langShort(langStr) {
-    if (!langStr) return '';
-    return langStr.split('・').map(l => LANG_ABBR[l] || '他').join('');
+  function langShort(s) {
+    if (!s) return '';
+    return s.split('・').map(l => LANG_ABBR[l] || '他').join('');
   }
-
-  // 役割表示（センター→C、アシスタント→A、TM系→回数付き）
   function roleShort(b, evId) {
     if (b.role === 'センター') return 'センター';
     if (b.role === 'アシスタント') return 'アシスタント';
-    if (b.role === '在日') return '';
-    if (b.role === '日本人') return '';
+    if (b.role === '在日' || b.role === '日本人') return '';
     if (TM_ROLES.includes(b.role) && b.tmPrev !== null && b.tmPrev !== undefined) {
-      const evIdx = b.eventIds ? b.eventIds.indexOf(evId) : 0;
-      return 'TM' + (b.tmPrev + evIdx + 1) + '回目';
+      const idx = b.eventIds ? b.eventIds.indexOf(evId) : 0;
+      return 'TM' + (b.tmPrev + Math.max(idx,0) + 1) + '回目';
     }
     return b.role || '';
   }
-
-  // 備考（ご伝言・付き添い）
-  function getBiko(b) {
-    const parts = [];
-    if (b.role === 'TM(在日)' && b.tmEscort) parts.push('付き添い:' + b.tmEscort);
-    if (b.notes) parts.push(b.notes);
-    return parts.join('、');
+  function biko(b) {
+    const p = [];
+    if (b.role === 'TM(在日)' && b.tmEscort) p.push('付き添い:' + b.tmEscort);
+    if (b.notes) p.push(b.notes);
+    return p.join('、');
   }
 
   // ヘッダー行
-  ws_data.push(['法要', '人数', '役割', '氏名', '言語', '連絡担当', '備考']);
-
-  let currentRow = 1; // 0-indexed、ヘッダーが0行目
-  const groupStartRows = []; // 各法要の開始行（太線を引く境界）
+  rows.push({ cells: ['法要','人数','役割','氏名','言語','連絡担当','備考'], isAdded:false, isCancelled:false, isHeader:true });
 
   EVENTS.forEach(ev => {
-    const evB = sortByRole(bookings.filter(b => b.eventIds && b.eventIds.includes(ev.id)));
-    const evLabel = ev.day + '（' + (wd(ev)||'') + '） ' + (ev.name[currentLang]||ev.name.ja);
-    const ca = evB.filter(b => b.role === 'センター' || b.role === 'アシスタント').length;
-    const countLabel = 'C+A: ' + ca + ' / 全: ' + evB.length;
-    const rowCount = Math.max(evB.length, 1);
+    const active    = sortByRole(bookings.filter(b => b.eventIds && b.eventIds.includes(ev.id)));
+    const cancelled = bookings.filter(b => (b.cancelledEventIds||[]).includes(ev.id));
+    const evLabel   = ev.day + '（' + (wd(ev)||'') + '） ' + (ev.name[currentLang]||ev.name.ja);
+    const ca        = active.filter(b => b.role==='センター'||b.role==='アシスタント').length;
+    const countLabel = 'C+A: ' + ca + ' / 全: ' + active.length;
+    const groupStart = rows.length;
+    groupStartRows.push(groupStart);
 
-    groupStartRows.push(currentRow); // この法要の先頭行を記録
-
-    // キャンセル行
-    const evCancelledExcel = bookings.filter(b => (b.cancelledEventIds || []).includes(ev.id));
-    if (evB.length === 0 && evCancelledExcel.length === 0) {
-      ws_data.push({ cells: [evLabel, countLabel, '', '', '', '', ''], isAdded: false, isCancelled: false });
-      currentRow++;
-    } else {
-      evB.forEach((b, i) => {
-        const isAdded     = b.status === '更新' && (b.prevEventIds || []).length > 0 && !(b.prevEventIds || []).includes(ev.id);
-        const isCancelled = (b.cancelledEventIds || []).includes(ev.id);
-        ws_data.push({
-          cells: [
-            i === 0 ? evLabel : '',
-            i === 0 ? countLabel : '',
-            roleShort(b, ev.id),
-            b.name,
-            langShort(b.language),
-            b.contact || '',
-            getBiko(b),
-          ],
-          isAdded,
-          isCancelled,
-        });
-      });
-
-      // 法要・人数セルを結合
-      if (rowCount > 1) {
-        merges.push({ s:{r:currentRow, c:0}, e:{r:currentRow+rowCount-1, c:0} });
-        merges.push({ s:{r:currentRow, c:1}, e:{r:currentRow+rowCount-1, c:1} });
-      }
-      // キャンセル行を末尾に追加
-      evCancelledExcel.forEach(b => {
-        ws_data.push({
-          cells: ['', '', roleShort(b, ev.id), b.name, langShort(b.language), b.contact || '', getBiko(b)],
-          isAdded: false, isCancelled: true,
-        });
-        currentRow++;
-      });
-      currentRow += rowCount;
+    if (active.length === 0 && cancelled.length === 0) {
+      rows.push({ cells:[evLabel, countLabel,'','','','',''], isAdded:false, isCancelled:false });
+      return;
     }
+
+    active.forEach((b, i) => {
+      const isAdded = b.status==='更新' && (b.prevEventIds||[]).length > 0 && !(b.prevEventIds||[]).includes(ev.id);
+      rows.push({
+        cells: [
+          i===0 ? evLabel : '',
+          i===0 ? countLabel : '',
+          roleShort(b, ev.id),
+          b.name,
+          langShort(b.language),
+          b.contact||'',
+          biko(b),
+        ],
+        isAdded,
+        isCancelled: false,
+      });
+    });
+
+    // 法要・人数セルを結合
+    const activeCount = active.length || 1;
+    if (activeCount > 1) {
+      merges.push({ s:{r:groupStart,c:0}, e:{r:groupStart+activeCount-1,c:0} });
+      merges.push({ s:{r:groupStart,c:1}, e:{r:groupStart+activeCount-1,c:1} });
+    }
+
+    // キャンセル行（結合外）
+    cancelled.forEach(b => {
+      rows.push({
+        cells: ['', '', roleShort(b, ev.id), b.name, langShort(b.language), b.contact||'', biko(b)],
+        isAdded: false,
+        isCancelled: true,
+      });
+    });
   });
 
-  const totalRows = currentRow;
-
-  // ws_dataをaoa形式に変換
-  const ws_aoa = ws_data.map(r => Array.isArray(r) ? r : r.cells);
+  const totalRows = rows.length;
+  const ws_aoa = rows.map(r => r.cells);
   const ws = XLSX.utils.aoa_to_sheet(ws_aoa);
   ws['!merges'] = merges;
-
-  // ヘッダー行を固定（XMLを直接注入）
-  ws['!freeze'] = { xSplit: 0, ySplit: 1 };
-  // xlsx-js-styleはsheetViewsをXMLとして直接設定
-  if (!ws['!xml']) ws['!xml'] = {};
-  ws['!sheetView'] = '<sheetView tabSelected="1" workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft"/></sheetView>';
-
-  // 列幅
+  ws['!sheetViews'] = [{ state:'frozen', ySplit:1, topLeftCell:'A2' }];
   ws['!cols'] = [
-    { wch: 32 }, // 法要
-    { wch: 14 }, // 人数
-    { wch: 12 }, // 役割
-    { wch: 14 }, // 氏名
-    { wch: 10 }, // 言語
-    { wch: 10 }, // 連絡担当
-    { wch: 24 }, // 備考
+    {wch:32},{wch:14},{wch:12},{wch:14},{wch:10},{wch:10},{wch:24}
   ];
 
-  // 罫線定義
-  const thin   = { style: 'thin',   color: { rgb: 'AAAAAA' } };
-  const thick  = { style: 'medium', color: { rgb: '555555' } };
-  const NCOLS  = 7;
+  const thin  = { style:'thin',   color:{rgb:'AAAAAA'} };
+  const thick = { style:'medium', color:{rgb:'555555'} };
+  const NCOLS = 7;
 
-  // 全セルにスタイル適用
-  const fullRange = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+  const fullRange = XLSX.utils.decode_range(ws['!ref']||'A1');
   for (let R = fullRange.s.r; R <= fullRange.e.r; R++) {
-    const isHeader    = R === 0;
+    const meta        = rows[R] || {};
+    const isHeader    = !!meta.isHeader;
+    const isAdded     = !!meta.isAdded;
+    const isCancelled = !!meta.isCancelled;
     const isGroupTop  = groupStartRows.includes(R);
     const isLastRow   = R === totalRows - 1;
-    const rowMeta     = ws_data[R];
-    const isAdded     = rowMeta && !Array.isArray(rowMeta) && rowMeta.isAdded;
-    const isCancelled = rowMeta && !Array.isArray(rowMeta) && rowMeta.isCancelled;
 
     for (let C = 0; C < NCOLS; C++) {
-      const addr = XLSX.utils.encode_cell({ r: R, c: C });
-      if (!ws[addr]) ws[addr] = { t: 's', v: '' };
-
-      const isFirstCol = C === 0;
-      const isLastCol  = C === NCOLS - 1;
-
-      let fontColor = '000000';
-      if (isHeader) fontColor = INK;
-      else if (isCancelled) fontColor = '8B3A3A';
-      else if (isAdded) fontColor = '2A5EA8';
-
+      const addr = XLSX.utils.encode_cell({r:R, c:C});
+      if (!ws[addr]) ws[addr] = {t:'s', v:''};
       ws[addr].s = {
         font: {
-          name: 'Meiryo UI',
-          bold: isHeader,
-          sz: 10,
-          color: { rgb: fontColor },
+          name: 'Meiryo UI', sz: 10, bold: isHeader,
+          color: { rgb: isCancelled ? '8B3A3A' : isAdded ? '2A5EA8' : '2A2520' },
           strike: isCancelled,
         },
-        alignment: { vertical: 'top', wrapText: true },
+        alignment: { vertical:'top', wrapText:true },
         fill: isHeader
-          ? { fgColor: { rgb: 'F0EBE3' }, patternType: 'solid' }
-          : { patternType: 'none' },
+          ? { fgColor:{rgb:'F0EBE3'}, patternType:'solid' }
+          : { patternType:'none' },
         border: {
-          top:    isHeader || isGroupTop ? thick : thin,
+          top:    (isHeader||isGroupTop) ? thick : thin,
           bottom: isLastRow              ? thick : thin,
-          left:   isFirstCol             ? thick : thin,
-          right:  isLastCol              ? thick : thin,
+          left:   C===0                  ? thick : thin,
+          right:  C===NCOLS-1            ? thick : thin,
         },
       };
     }
@@ -1611,56 +1573,86 @@ function sendConfirmEmail(b, evLines, isUpdate) {
 // ── DEMO DATA ──
 function seedDemoData() {
   if (!confirm('デモデータ（40件）を投入します。よろしいですか？')) return;
-  const M = 'month:\'2026-04\',';
-  const G = 'status:\'新規\', project:\'GLAD\', month:\'2026-04\'';
+  // 共通フィールド
+  const G = {status:'新規', project:'GLAD', month:'2026-04', prev_event_ids:'[]', cancelled_event_ids:'[]'};
+  // 更新パターン（追加あり）
+  const U_add = (prev, curr) => ({status:'更新', project:'GLAD', month:'2026-04', prev_event_ids:JSON.stringify(prev), cancelled_event_ids:'[]'});
+  // 更新パターン（キャンセルあり）
+  const U_cancel = (prev, curr, cancelled) => ({status:'更新', project:'GLAD', month:'2026-04', prev_event_ids:JSON.stringify(prev), cancelled_event_ids:JSON.stringify(cancelled)});
+
   const DEMO = [
-    // ── センター ──
-    {name:'田中 恵子', email:'tanaka.keiko@demo.com', role:'センター', language:'英語・中国語', contact:'木村 信夫', events:'4日（土） 廻向法要 / 11日（土） 正輪会 / 15日（水） 常楽会', event_ids:JSON.stringify(['e01','e04','e06']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/01 9:00:00'},
-    {name:'山本 浩二', email:'yamamoto.koji@demo.com', role:'センター', language:'スペイン語・ポルトガル語', contact:'木村 信夫', events:'8日（水） 真導院様セレモニー / 18日（土） 真如済摂会', event_ids:JSON.stringify(['e02','e07']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/01 10:15:00'},
-    {name:'前田 光子', email:'maeda.mitsuko@demo.com', role:'センター', language:'日本語・韓国語', contact:'', events:'9日（木） 一如祈念 / 21日（火） 一如祈念 / 28日（火） 法前供', event_ids:JSON.stringify(['e03','e10','e13']), notes:'韓国語メンバー担当', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/01 13:00:00'},
-    {name:'木村 信夫', email:'kimura.nobuo@demo.com', role:'センター', language:'英語・フランス語', contact:'', events:'18日（土） 真如済摂会 / 25日（土） One Heart セレモニー / 28日（火） 法前供', event_ids:JSON.stringify(['e07','e12','e13']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/01 14:00:00'},
-    // ── アシスタント ──
-    {name:'佐藤 美佳', email:'sato.mika@demo.com', role:'アシスタント', language:'英語', contact:'田中 恵子', events:'4日（土） 廻向法要 / 9日（木） 一如祈念 / 28日（火） 法前供', event_ids:JSON.stringify(['e01','e03','e13']), notes:'よろしくお願いします', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/01 11:30:00'},
-    {name:'鈴木 隆', email:'suzuki.takashi@demo.com', role:'アシスタント', language:'中国語・英語', contact:'山本 浩二', events:'15日（水） 常楽会 / 24日（金） 廻向法要', event_ids:JSON.stringify(['e06','e11']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/02 8:45:00'},
-    {name:'渡辺 香', email:'watanabe.kaori@demo.com', role:'アシスタント', language:'広東語・中国語', contact:'', events:'11日（土） 正輪会 / 20日（月） 笠法様法楽法要 / 25日（土） One Heart セレモニー', event_ids:JSON.stringify(['e04','e09','e12']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/02 10:00:00'},
-    {name:'加藤 里奈', email:'kato.rina@demo.com', role:'アシスタント', language:'英語・ポルトガル語', contact:'山本 浩二', events:'4日（土） 廻向法要 / 20日（月） 笠法様法楽法要 / 24日（金） 廻向法要', event_ids:JSON.stringify(['e01','e09','e11']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/02 11:00:00'},
-    {name:'吉田 健太', email:'yoshida.kenta@demo.com', role:'アシスタント', language:'スペイン語', contact:'木村 信夫', events:'8日（水） 真導院様セレモニー / 15日（水） 常楽会 / 18日（土） 真如済摂会', event_ids:JSON.stringify(['e02','e06','e07']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/02 13:00:00'},
+    // ── センター（新規）──
+    {name:'田中 恵子', email:'tanaka.keiko@demo.com', role:'センター', language:'英語・中国語', contact:'木村 信夫', events:'4日（土） 廻向法要 / 11日（土） 正輪会 / 15日（水） 常楽会', event_ids:JSON.stringify(['e01','e04','e06']), notes:'', tm_prev:null, tm_escort:'', at:'2026/04/01 9:00:00', ...G},
+    {name:'山本 浩二', email:'yamamoto.koji@demo.com', role:'センター', language:'スペイン語・ポルトガル語', contact:'木村 信夫', events:'8日（水） 真導院様セレモニー / 18日（土） 真如済摂会', event_ids:JSON.stringify(['e02','e07']), notes:'', tm_prev:null, tm_escort:'', at:'2026/04/01 10:15:00', ...G},
+    {name:'前田 光子', email:'maeda.mitsuko@demo.com', role:'センター', language:'日本語・韓国語', contact:'', events:'9日（木） 一如祈念 / 21日（火） 一如祈念 / 28日（火） 法前供', event_ids:JSON.stringify(['e03','e10','e13']), notes:'韓国語メンバー担当', tm_prev:null, tm_escort:'', at:'2026/04/01 13:00:00', ...G},
+    {name:'木村 信夫', email:'kimura.nobuo@demo.com', role:'センター', language:'英語・フランス語', contact:'', events:'18日（土） 真如済摂会 / 25日（土） One Heart セレモニー / 28日（火） 法前供', event_ids:JSON.stringify(['e07','e12','e13']), notes:'', tm_prev:null, tm_escort:'', at:'2026/04/01 14:00:00', ...G},
+    // ── アシスタント（一部更新）──
+    // 佐藤: 4日追加（更新）
+    {name:'佐藤 美佳', email:'sato.mika@demo.com', role:'アシスタント', language:'英語', contact:'田中 恵子', events:'4日（土） 廻向法要 / 9日（木） 一如祈念 / 28日（火） 法前供', event_ids:JSON.stringify(['e01','e03','e13']), notes:'よろしくお願いします', tm_prev:null, tm_escort:'', at:'2026/04/03 15:00:00', ...U_add(['e03','e13'],['e01','e03','e13'])},
+    {name:'鈴木 隆', email:'suzuki.takashi@demo.com', role:'アシスタント', language:'中国語・英語', contact:'山本 浩二', events:'15日（水） 常楽会 / 24日（金） 廻向法要', event_ids:JSON.stringify(['e06','e11']), notes:'', tm_prev:null, tm_escort:'', at:'2026/04/02 8:45:00', ...G},
+    // 渡辺: 25日キャンセル（更新）
+    {name:'渡辺 香', email:'watanabe.kaori@demo.com', role:'アシスタント', language:'広東語・中国語', contact:'', events:'11日（土） 正輪会 / 20日（月） 笠法様法楽法要', event_ids:JSON.stringify(['e04','e09']), notes:'25日は都合が悪くなりました', tm_prev:null, tm_escort:'', at:'2026/04/04 9:00:00', ...U_cancel(['e04','e09','e12'],['e04','e09'],['e12'])},
+    {name:'加藤 里奈', email:'kato.rina@demo.com', role:'アシスタント', language:'英語・ポルトガル語', contact:'山本 浩二', events:'4日（土） 廻向法要 / 20日（月） 笠法様法楽法要 / 24日（金） 廻向法要', event_ids:JSON.stringify(['e01','e09','e11']), notes:'', tm_prev:null, tm_escort:'', at:'2026/04/02 11:00:00', ...G},
+    {name:'吉田 健太', email:'yoshida.kenta@demo.com', role:'アシスタント', language:'スペイン語', contact:'木村 信夫', events:'8日（水） 真導院様セレモニー / 15日（水） 常楽会 / 18日（土） 真如済摂会', event_ids:JSON.stringify(['e02','e06','e07']), notes:'', tm_prev:null, tm_escort:'', at:'2026/04/02 13:00:00', ...G},
     // ── 在日 ──
-    {name:'Maria Silva', email:'maria.silva@demo.com', role:'在日', language:'ポルトガル語・英語', contact:'山本 浩二', events:'4日（土） 廻向法要 / 20日（月） 笠法様法楽法要', event_ids:JSON.stringify(['e01','e09']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/02 14:00:00'},
-    {name:'Carlos Mendoza', email:'carlos.mendoza@demo.com', role:'在日', language:'スペイン語', contact:'山本 浩二', events:'11日（土） 正輪会 / 25日（土） One Heart セレモニー', event_ids:JSON.stringify(['e04','e12']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/02 15:20:00'},
-    {name:'박 민준', email:'park.minjun@demo.com', role:'在日', language:'韓国語・日本語', contact:'前田 光子', events:'4日（土） 廻向法要 / 15日（水） 常楽会', event_ids:JSON.stringify(['e01','e06']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/03 8:00:00'},
-    {name:'陳 偉明', email:'chan.waimeng@demo.com', role:'在日', language:'広東語・中国語', contact:'渡辺 香', events:'11日（土） 正輪会 / 24日（金） 廻向法要', event_ids:JSON.stringify(['e04','e11']), notes:'広東語のみ希望', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/03 9:00:00'},
-    {name:'Rosa Fernandez', email:'rosa.fernandez@demo.com', role:'在日', language:'スペイン語・英語', contact:'加藤 里奈', events:'4日（土） 廻向法要 / 11日（土） 正輪会 / 15日（水） 常楽会', event_ids:JSON.stringify(['e01','e04','e06']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/03 10:00:00'},
-    {name:'João Santos', email:'joao.santos@demo.com', role:'在日', language:'ポルトガル語', contact:'加藤 里奈', events:'9日（木） 一如祈念 / 24日（金） 廻向法要', event_ids:JSON.stringify(['e03','e11']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/03 11:00:00'},
-    {name:'李 秀英', email:'li.xiuying@demo.com', role:'在日', language:'中国語', contact:'鈴木 隆', events:'15日（水） 常楽会 / 20日（月） 笠法様法楽法要 / 28日（火） 法前供', event_ids:JSON.stringify(['e06','e09','e13']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/03 13:00:00'},
-    {name:'이 지영', email:'lee.jiyoung@demo.com', role:'在日', language:'韓国語・英語', contact:'前田 光子', events:'11日（土） 正輪会 / 21日（火） 一如祈念', event_ids:JSON.stringify(['e04','e10']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/03 14:00:00'},
+    {name:'Maria Silva', email:'maria.silva@demo.com', role:'在日', language:'ポルトガル語・英語', contact:'山本 浩二', events:'4日（土） 廻向法要 / 20日（月） 笠法様法楽法要', event_ids:JSON.stringify(['e01','e09']), notes:'', tm_prev:null, tm_escort:'', at:'2026/04/02 14:00:00', ...G},
+    // Carlos: 11日追加、4日キャンセル（更新）
+    {name:'Carlos Mendoza', email:'carlos.mendoza@demo.com', role:'在日', language:'スペイン語', contact:'山本 浩二', events:'11日（土） 正輪会 / 25日（土） One Heart セレモニー', event_ids:JSON.stringify(['e04','e12']), notes:'', tm_prev:null, tm_escort:'', at:'2026/04/04 10:00:00', ...U_cancel(['e01','e12'],['e04','e12'],['e01'])},
+    {name:'박 민준', email:'park.minjun@demo.com', role:'在日', language:'韓国語・日本語', contact:'前田 光子', events:'4日（土） 廻向法要 / 15日（水） 常楽会', event_ids:JSON.stringify(['e01','e06']), notes:'', tm_prev:null, tm_escort:'', at:'2026/04/03 8:00:00', ...G},
+    {name:'陳 偉明', email:'chan.waimeng@demo.com', role:'在日', language:'広東語・中国語', contact:'渡辺 香', events:'11日（土） 正輪会 / 24日（金） 廻向法要', event_ids:JSON.stringify(['e04','e11']), notes:'広東語のみ希望', tm_prev:null, tm_escort:'', at:'2026/04/03 9:00:00', ...G},
+    {name:'Rosa Fernandez', email:'rosa.fernandez@demo.com', role:'在日', language:'スペイン語・英語', contact:'加藤 里奈', events:'4日（土） 廻向法要 / 11日（土） 正輪会 / 15日（水） 常楽会', event_ids:JSON.stringify(['e01','e04','e06']), notes:'', tm_prev:null, tm_escort:'', at:'2026/04/03 10:00:00', ...G},
+    {name:'João Santos', email:'joao.santos@demo.com', role:'在日', language:'ポルトガル語', contact:'加藤 里奈', events:'9日（木） 一如祈念 / 24日（金） 廻向法要', event_ids:JSON.stringify(['e03','e11']), notes:'', tm_prev:null, tm_escort:'', at:'2026/04/03 11:00:00', ...G},
+    {name:'李 秀英', email:'li.xiuying@demo.com', role:'在日', language:'中国語', contact:'鈴木 隆', events:'15日（水） 常楽会 / 20日（月） 笠法様法楽法要 / 28日（火） 法前供', event_ids:JSON.stringify(['e06','e09','e13']), notes:'', tm_prev:null, tm_escort:'', at:'2026/04/03 13:00:00', ...G},
+    {name:'이 지영', email:'lee.jiyoung@demo.com', role:'在日', language:'韓国語・英語', contact:'前田 光子', events:'11日（土） 正輪会 / 21日（火） 一如祈念', event_ids:JSON.stringify(['e04','e10']), notes:'', tm_prev:null, tm_escort:'', at:'2026/04/03 14:00:00', ...G},
     // ── 日本人 ──
-    {name:'高橋 誠', email:'takahashi.makoto@demo.com', role:'日本人', language:'英語', contact:'佐藤 美佳', events:'9日（木） 一如祈念 / 21日（火） 一如祈念', event_ids:JSON.stringify(['e03','e10']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/03 9:10:00'},
-    {name:'伊藤 由美', email:'ito.yumi@demo.com', role:'日本人', language:'フランス語・英語', contact:'', events:'4日（土） 廻向法要 / 15日（水） 常楽会 / 28日（火） 法前供', event_ids:JSON.stringify(['e01','e06','e13']), notes:'フランス語対応できます', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/03 10:00:00'},
-    {name:'松本 大介', email:'matsumoto.daisuke@demo.com', role:'日本人', language:'スペイン語・英語', contact:'鈴木 隆', events:'8日（水） 真導院様セレモニー / 18日（土） 真如済摂会', event_ids:JSON.stringify(['e02','e07']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/03 14:00:00'},
-    {name:'岡田 純子', email:'okada.junko@demo.com', role:'日本人', language:'英語・中国語', contact:'田中 恵子', events:'11日（土） 正輪会 / 12日（日） 一如祈念 / 20日（月） 笠法様法楽法要', event_ids:JSON.stringify(['e04','e05','e09']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/04 8:00:00'},
-    {name:'中島 浩', email:'nakajima.hiroshi@demo.com', role:'日本人', language:'ポルトガル語', contact:'木村 信夫', events:'25日（土） One Heart セレモニー / 28日（火） 法前供', event_ids:JSON.stringify(['e12','e13']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/04 9:00:00'},
-    {name:'斉藤 京子', email:'saito.kyoko@demo.com', role:'日本人', language:'広東語・英語', contact:'渡辺 香', events:'4日（土） 廻向法要 / 24日（金） 廻向法要', event_ids:JSON.stringify(['e01','e11']), notes:'広東語少し話せます', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/04 10:00:00'},
-    {name:'林 昭夫', email:'hayashi.akio@demo.com', role:'日本人', language:'英語', contact:'', events:'12日（日） 一如祈念 / 21日（火） 一如祈念', event_ids:JSON.stringify(['e05','e10']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:null, tm_escort:'', at:'2026/04/04 11:00:00'},
+    {name:'高橋 誠', email:'takahashi.makoto@demo.com', role:'日本人', language:'英語', contact:'佐藤 美佳', events:'9日（木） 一如祈念 / 21日（火） 一如祈念', event_ids:JSON.stringify(['e03','e10']), notes:'', tm_prev:null, tm_escort:'', at:'2026/04/03 9:10:00', ...G},
+    // 伊藤: 28日追加（更新）
+    {name:'伊藤 由美', email:'ito.yumi@demo.com', role:'日本人', language:'フランス語・英語', contact:'', events:'4日（土） 廻向法要 / 15日（水） 常楽会 / 28日（火） 法前供', event_ids:JSON.stringify(['e01','e06','e13']), notes:'フランス語対応できます', tm_prev:null, tm_escort:'', at:'2026/04/05 8:00:00', ...U_add(['e01','e06'],['e01','e06','e13'])},
+    {name:'松本 大介', email:'matsumoto.daisuke@demo.com', role:'日本人', language:'スペイン語・英語', contact:'鈴木 隆', events:'8日（水） 真導院様セレモニー / 18日（土） 真如済摂会', event_ids:JSON.stringify(['e02','e07']), notes:'', tm_prev:null, tm_escort:'', at:'2026/04/03 14:00:00', ...G},
+    {name:'岡田 純子', email:'okada.junko@demo.com', role:'日本人', language:'英語・中国語', contact:'田中 恵子', events:'11日（土） 正輪会 / 12日（日） 一如祈念 / 20日（月） 笠法様法楽法要', event_ids:JSON.stringify(['e04','e05','e09']), notes:'', tm_prev:null, tm_escort:'', at:'2026/04/04 8:00:00', ...G},
+    {name:'中島 浩', email:'nakajima.hiroshi@demo.com', role:'日本人', language:'ポルトガル語', contact:'木村 信夫', events:'25日（土） One Heart セレモニー / 28日（火） 法前供', event_ids:JSON.stringify(['e12','e13']), notes:'', tm_prev:null, tm_escort:'', at:'2026/04/04 9:00:00', ...G},
+    {name:'斉藤 京子', email:'saito.kyoko@demo.com', role:'日本人', language:'広東語・英語', contact:'渡辺 香', events:'4日（土） 廻向法要 / 24日（金） 廻向法要', event_ids:JSON.stringify(['e01','e11']), notes:'広東語少し話せます', tm_prev:null, tm_escort:'', at:'2026/04/04 10:00:00', ...G},
+    {name:'林 昭夫', email:'hayashi.akio@demo.com', role:'日本人', language:'英語', contact:'', events:'12日（日） 一如祈念 / 21日（火） 一如祈念', event_ids:JSON.stringify(['e05','e10']), notes:'', tm_prev:null, tm_escort:'', at:'2026/04/04 11:00:00', ...G},
     // ── TM(在日) 付き添いあり ──
-    {name:'Ana Oliveira', email:'ana.oliveira@demo.com', role:'TM(在日)', language:'ポルトガル語', contact:'Maria Silva', events:'4日（土） 廻向法要', event_ids:JSON.stringify(['e01']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:2, tm_escort:'Pedro Oliveira', at:'2026/04/03 11:00:00'},
-    {name:'Lucia Gomez', email:'lucia.gomez@demo.com', role:'TM(在日)', language:'スペイン語・英語', contact:'Carlos Mendoza', events:'11日（土） 正輪会 / 24日（金） 廻向法要', event_ids:JSON.stringify(['e04','e11']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:5, tm_escort:'Roberto Gomez', at:'2026/04/04 9:30:00'},
-    {name:'김 지수', email:'kim.jisu@demo.com', role:'TM(在日)', language:'韓国語', contact:'박 민준', events:'15日（水） 常楽会 / 25日（土） One Heart セレモニー', event_ids:JSON.stringify(['e06','e12']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:1, tm_escort:'김 영호', at:'2026/04/04 10:00:00'},
-    {name:'Fatima Al-Hassan', email:'fatima.alhassan@demo.com', role:'TM(在日)', language:'フランス語・英語', contact:'木村 信夫', events:'15日（水） 常楽会 / 28日（火） 法前供', event_ids:JSON.stringify(['e06','e13']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:3, tm_escort:'Yusuf Al-Hassan', at:'2026/04/04 11:00:00'},
-    {name:'Paulo Sousa', email:'paulo.sousa@demo.com', role:'TM(在日)', language:'ポルトガル語・スペイン語', contact:'加藤 里奈', events:'4日（土） 廻向法要 / 11日（土） 正輪会', event_ids:JSON.stringify(['e01','e04']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:0, tm_escort:'Carla Sousa', at:'2026/04/04 12:00:00'},
+    {name:'Ana Oliveira', email:'ana.oliveira@demo.com', role:'TM(在日)', language:'ポルトガル語', contact:'Maria Silva', events:'4日（土） 廻向法要', event_ids:JSON.stringify(['e01']), notes:'', tm_prev:2, tm_escort:'Pedro Oliveira', at:'2026/04/03 11:00:00', ...G},
+    // Lucia: 11日追加（更新）
+    {name:'Lucia Gomez', email:'lucia.gomez@demo.com', role:'TM(在日)', language:'スペイン語・英語', contact:'Carlos Mendoza', events:'11日（土） 正輪会 / 24日（金） 廻向法要', event_ids:JSON.stringify(['e04','e11']), notes:'', tm_prev:5, tm_escort:'Roberto Gomez', at:'2026/04/05 10:00:00', ...U_add(['e11'],['e04','e11'])},
+    {name:'김 지수', email:'kim.jisu@demo.com', role:'TM(在日)', language:'韓国語', contact:'박 민준', events:'15日（水） 常楽会 / 25日（土） One Heart セレモニー', event_ids:JSON.stringify(['e06','e12']), notes:'', tm_prev:1, tm_escort:'김 영호', at:'2026/04/04 10:00:00', ...G},
+    // Fatima: 28日キャンセル（更新）
+    {name:'Fatima Al-Hassan', email:'fatima.alhassan@demo.com', role:'TM(在日)', language:'フランス語・英語', contact:'木村 信夫', events:'15日（水） 常楽会', event_ids:JSON.stringify(['e06']), notes:'28日は急用があります', tm_prev:3, tm_escort:'Yusuf Al-Hassan', at:'2026/04/05 11:00:00', ...U_cancel(['e06','e13'],['e06'],['e13'])},
+    {name:'Paulo Sousa', email:'paulo.sousa@demo.com', role:'TM(在日)', language:'ポルトガル語・スペイン語', contact:'加藤 里奈', events:'4日（土） 廻向法要 / 11日（土） 正輪会', event_ids:JSON.stringify(['e01','e04']), notes:'', tm_prev:0, tm_escort:'Carla Sousa', at:'2026/04/04 12:00:00', ...G},
     // ── TM(在日) 付き添いなし ──
-    {name:'Wei Chen', email:'wei.chen@demo.com', role:'TM(在日)', language:'中国語', contact:'渡辺 香', events:'15日（水） 常楽会', event_ids:JSON.stringify(['e06']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:0, tm_escort:'', at:'2026/04/04 10:45:00'},
-    {name:'Hana Tanaka', email:'hana.tanaka@demo.com', role:'TM(在日)', language:'英語', contact:'佐藤 美佳', events:'9日（木） 一如祈念 / 20日（月） 笠法様法楽法要', event_ids:JSON.stringify(['e03','e09']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:4, tm_escort:'', at:'2026/04/05 8:30:00'},
-    {name:'Mei Lin', email:'mei.lin@demo.com', role:'TM(在日)', language:'中国語・広東語', contact:'鈴木 隆', events:'11日（土） 正輪会 / 24日（金） 廻向法要', event_ids:JSON.stringify(['e04','e11']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:2, tm_escort:'', at:'2026/04/05 9:00:00'},
+    // Wei: 15日のみ→11日追加（更新）
+    {name:'Wei Chen', email:'wei.chen@demo.com', role:'TM(在日)', language:'中国語', contact:'渡辺 香', events:'11日（土） 正輪会 / 15日（水） 常楽会', event_ids:JSON.stringify(['e04','e06']), notes:'', tm_prev:0, tm_escort:'', at:'2026/04/05 9:00:00', ...U_add(['e06'],['e04','e06'])},
+    {name:'Hana Tanaka', email:'hana.tanaka@demo.com', role:'TM(在日)', language:'英語', contact:'佐藤 美佳', events:'9日（木） 一如祈念 / 20日（月） 笠法様法楽法要', event_ids:JSON.stringify(['e03','e09']), notes:'', tm_prev:4, tm_escort:'', at:'2026/04/05 8:30:00', ...G},
+    {name:'Mei Lin', email:'mei.lin@demo.com', role:'TM(在日)', language:'中国語・広東語', contact:'鈴木 隆', events:'11日（土） 正輪会 / 24日（金） 廻向法要', event_ids:JSON.stringify(['e04','e11']), notes:'', tm_prev:2, tm_escort:'', at:'2026/04/05 9:00:00', ...G},
     // ── TM(日本人) ──
-    {name:'中村 健', email:'nakamura.ken@demo.com', role:'TM(日本人)', language:'英語・中国語', contact:'田中 恵子', events:'4日（土） 廻向法要 / 11日（土） 正輪会 / 15日（水） 常楽会', event_ids:JSON.stringify(['e01','e04','e06']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:8, tm_escort:'', at:'2026/04/04 12:00:00'},
-    {name:'小林 奈緒', email:'kobayashi.nao@demo.com', role:'TM(日本人)', language:'フランス語', contact:'', events:'9日（木） 一如祈念 / 20日（月） 笠法様法楽法要 / 28日（火） 法前供', event_ids:JSON.stringify(['e03','e09','e13']), notes:'フランス語のみ対応', status:'新規', project:'GLAD', month:'2026-04', tm_prev:3, tm_escort:'', at:'2026/04/05 8:00:00'},
-    {name:'森 拓也', email:'mori.takuya@demo.com', role:'TM(日本人)', language:'スペイン語・ポルトガル語', contact:'鈴木 隆', events:'4日（土） 廻向法要 / 24日（金） 廻向法要 / 28日（火） 法前供', event_ids:JSON.stringify(['e01','e11','e13']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:12, tm_escort:'', at:'2026/04/05 9:30:00'},
-    {name:'石田 明美', email:'ishida.akemi@demo.com', role:'TM(日本人)', language:'英語', contact:'高橋 誠', events:'8日（水） 真導院様セレモニー / 15日（水） 常楽会 / 18日（土） 真如済摂会', event_ids:JSON.stringify(['e02','e06','e07']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:6, tm_escort:'', at:'2026/04/05 10:00:00'},
-    {name:'山田 一郎', email:'yamada.ichiro@demo.com', role:'TM(日本人)', language:'広東語・中国語', contact:'渡辺 香', events:'11日（土） 正輪会 / 25日（土） One Heart セレモニー', event_ids:JSON.stringify(['e04','e12']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:1, tm_escort:'', at:'2026/04/05 11:00:00'},
-    {name:'坂本 真理', email:'sakamoto.mari@demo.com', role:'TM(日本人)', language:'韓国語・英語', contact:'前田 光子', events:'12日（日） 一如祈念 / 21日（火） 一如祈念 / 28日（火） 法前供', event_ids:JSON.stringify(['e05','e10','e13']), notes:'韓国語TMです', status:'新規', project:'GLAD', month:'2026-04', tm_prev:0, tm_escort:'', at:'2026/04/05 13:00:00'},
-    {name:'橋本 学', email:'hashimoto.manabu@demo.com', role:'TM(日本人)', language:'ポルトガル語・英語', contact:'中島 浩', events:'4日（土） 廻向法要 / 20日（月） 笠法様法楽法要', event_ids:JSON.stringify(['e01','e09']), notes:'', status:'新規', project:'GLAD', month:'2026-04', tm_prev:15, tm_escort:'', at:'2026/04/05 14:00:00'},
+    {name:'中村 健', email:'nakamura.ken@demo.com', role:'TM(日本人)', language:'英語・中国語', contact:'田中 恵子', events:'4日（土） 廻向法要 / 11日（土） 正輪会 / 15日（水） 常楽会', event_ids:JSON.stringify(['e01','e04','e06']), notes:'', tm_prev:8, tm_escort:'', at:'2026/04/04 12:00:00', ...G},
+    {name:'小林 奈緒', email:'kobayashi.nao@demo.com', role:'TM(日本人)', language:'フランス語', contact:'', events:'9日（木） 一如祈念 / 20日（月） 笠法様法楽法要 / 28日（火） 法前供', event_ids:JSON.stringify(['e03','e09','e13']), notes:'フランス語のみ対応', tm_prev:3, tm_escort:'', at:'2026/04/05 8:00:00', ...G},
+    // 森: 24日キャンセル（更新）
+    {name:'森 拓也', email:'mori.takuya@demo.com', role:'TM(日本人)', language:'スペイン語・ポルトガル語', contact:'鈴木 隆', events:'4日（土） 廻向法要 / 28日（火） 法前供', event_ids:JSON.stringify(['e01','e13']), notes:'', tm_prev:12, tm_escort:'', at:'2026/04/06 9:00:00', ...U_cancel(['e01','e11','e13'],['e01','e13'],['e11'])},
+    {name:'石田 明美', email:'ishida.akemi@demo.com', role:'TM(日本人)', language:'英語', contact:'高橋 誠', events:'8日（水） 真導院様セレモニー / 15日（水） 常楽会 / 18日（土） 真如済摂会', event_ids:JSON.stringify(['e02','e06','e07']), notes:'', tm_prev:6, tm_escort:'', at:'2026/04/05 10:00:00', ...G},
+    {name:'山田 一郎', email:'yamada.ichiro@demo.com', role:'TM(日本人)', language:'広東語・中国語', contact:'渡辺 香', events:'11日（土） 正輪会 / 25日（土） One Heart セレモニー', event_ids:JSON.stringify(['e04','e12']), notes:'', tm_prev:1, tm_escort:'', at:'2026/04/05 11:00:00', ...G},
+    // 坂本: 21日追加・12日キャンセル（更新）
+    {name:'坂本 真理', email:'sakamoto.mari@demo.com', role:'TM(日本人)', language:'韓国語・英語', contact:'前田 光子', events:'21日（火） 一如祈念 / 28日（火） 法前供', event_ids:JSON.stringify(['e10','e13']), notes:'韓国語TMです', tm_prev:0, tm_escort:'', at:'2026/04/06 10:00:00', ...U_cancel(['e05','e13'],['e10','e13'],['e05'])},
+    {name:'橋本 学', email:'hashimoto.manabu@demo.com', role:'TM(日本人)', language:'ポルトガル語・英語', contact:'中島 浩', events:'4日（土） 廻向法要 / 20日（月） 笠法様法楽法要', event_ids:JSON.stringify(['e01','e09']), notes:'', tm_prev:15, tm_escort:'', at:'2026/04/05 14:00:00', ...G},
   ];
+  const headers = {
+    'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY,
+    'Content-Type': 'application/json', 'Prefer': 'return=minimal',
+  };
+  (async () => {
+    showToast('デモデータを投入中...');
+    let ok = 0;
+    for (const d of DEMO) {
+      await fetch(SUPABASE_URL + '/rest/v1/reservations?email=eq.' + encodeURIComponent(d.email) + '&month=eq.' + MONTH_CODE, {method:'DELETE', headers});
+      const res = await fetch(SUPABASE_URL + '/rest/v1/reservations', {method:'POST', headers, body:JSON.stringify(d)});
+      if (res.ok) ok++;
+    }
+    showToast('✓ デモデータ ' + ok + '件を投入しました');
+    loadFromDb();
+  })();
+}
   const headers = {
     'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY,
     'Content-Type': 'application/json', 'Prefer': 'return=minimal',
