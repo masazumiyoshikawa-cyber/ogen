@@ -994,7 +994,14 @@ function downloadExcel() {
   ws['!merges'] = merges;
 
   // ヘッダー行を固定（1行目でスクロール固定）
-  ws['!sheetViews'] = [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }];
+  ws['!sheetViews'] = [{
+    state: 'frozen',
+    ySplit: 1,
+    xSplit: 0,
+    topLeftCell: 'A2',
+    activePane: 'bottomLeft',
+    pane: [{ ySplit: 1, topLeftCell: 'A2', activePane: 'bottomLeft', state: 'frozen' }],
+  }];
 
   // 列幅
   ws['!cols'] = [
