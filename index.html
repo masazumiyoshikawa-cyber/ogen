@@ -662,6 +662,17 @@ const I18N = {
 // ═══════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════
+// MONTH_CODE から期間表示を自動生成
+const MONTH_NAMES_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+function monthPeriod(lang) {
+  const [y, m] = MONTH_CODE.split('-').map(Number);
+  return lang === 'en' ? `${MONTH_NAMES_EN[m-1]} ${y}` : `${y}年${m}月`;
+}
+function monthLabelStr(lang) {
+  const sep = lang === 'en' ? ' — Multiple selection allowed' : lang === 'zh' ? ' ── 可多选' : ' ── 複数選択可';
+  return monthPeriod(lang) + sep;
+}
+
 const ROLE_ORDER  = ['センター','アシスタント','在日','日本人','TM(在日)','TM(日本人)'];
 const ROLE_PREFIX = {'センター':'C: ','アシスタント':'A: ','在日':'','日本人':'','TM(在日)':'','TM(日本人)':''};
 const TM_ROLES    = ['TM(在日)','TM(日本人)'];
@@ -740,8 +751,8 @@ function applyI18n() {
   document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
   document.querySelector(`.lang-btn[onclick="setLang('${currentLang}')"]`).classList.add('active');
 
-  ['hdr-title',l.title,'hdr-period',l.period,'nav-form',l.nav[0],'nav-list',l.nav[1],'nav-admin',l.nav[2],
-   'sec-select',l.secSelect,'month-label',l.monthLabel,'sel-unit',l.selUnit,'form-sec-title',l.formSecTitle,
+  ['hdr-title',l.title,'hdr-period',monthPeriod(currentLang),'nav-form',l.nav[0],'nav-list',l.nav[1],'nav-admin',l.nav[2],
+   'sec-select',l.secSelect,'month-label',monthLabelStr(currentLang),'sel-unit',l.selUnit,'form-sec-title',l.formSecTitle,
    'lbl-last',l.lblLast+' *','lbl-first',l.lblFirst+' *','lbl-email',l.lblEmail+' *',
    'lbl-lang',l.lblLang,'lbl-role',l.lblRole+' *',
    'lbl-tm-count',l.tmCountLabel,'lbl-tm-escort',l.tmEscortLabel,
@@ -1254,9 +1265,9 @@ function sendCancellationEmail(b) {
     en: '[Registration Cancelled] GLAD Gohoshi',
   };
   const bodies = {
-    ja: `${b.name} 様\n\n以下のご奉仕の立願が管理者によって取り消されました。\n\n対象月：${I18N.ja.period}（${MONTH_CODE}）\n\n【取り消されたご奉仕】\n${evLines.join('\n')}\n\nご不明な点は担当者までお問い合わせください。\nGLAD応現院`,
-    zh: `${b.name}\n\n以下奉仕的志愿已被管理员取消。\n\n对象月份：${I18N.zh.period}（${MONTH_CODE}）\n\n【已取消的奉仕项目】\n${evLines.join('\n')}\n\n如有疑问，请联系负责人。\nGLAD応現院`,
-    en: `Dear ${b.name},\n\nYour registration for the following service(s) has been cancelled by the administrator.\n\nMonth: ${I18N.en.period} (${MONTH_CODE})\n\n[Cancelled Service(s)]\n${evLines.join('\n')}\n\nPlease contact your coordinator if you have any questions.\nGLAD Ogen-in`,
+    ja: `${b.name} 様\n\n以下のご奉仕の立願が管理者によって取り消されました。\n\n対象月：${monthPeriod('ja')}（${MONTH_CODE}）\n\n【取り消されたご奉仕】\n${evLines.join('\n')}\n\nご不明な点は担当者までお問い合わせください。\nGLAD応現院`,
+    zh: `${b.name}\n\n以下奉仕的志愿已被管理员取消。\n\n对象月份：${monthPeriod('zh')}（${MONTH_CODE}）\n\n【已取消的奉仕项目】\n${evLines.join('\n')}\n\n如有疑问，请联系负责人。\nGLAD応現院`,
+    en: `Dear ${b.name},\n\nYour registration for the following service(s) has been cancelled by the administrator.\n\nMonth: ${monthPeriod('en')} (${MONTH_CODE})\n\n[Cancelled Service(s)]\n${evLines.join('\n')}\n\nPlease contact your coordinator if you have any questions.\nGLAD Ogen-in`,
   };
   // 立願時の言語でメール送信（不明な場合は日本語）
   const lang = currentLang;
@@ -1631,7 +1642,7 @@ function sendBccEmail(b, evLines, isUpdate, bccEmailStr) {
     return ev ? `[キャンセル] ${ev.day}（${weekdayStr(ev)}） ${ev.name.ja}` : null;
   })].filter(Boolean);
 
-  const body = `【立願${isUpdate ? '更新' : '新規'}通知】${b.name}\n\n対象月：${I18N.ja.period}（${MONTH_CODE}）\n\n【変更内容】\n${changedEvs.join('\n')}\n\n【立願情報】\n役割：${b.role}\n対応言語：${b.language}${b.tmPrev != null ? '\nTM回数：今回が' + (b.tmPrev + 1) + '回目' : ''}${b.contact ? '\n連絡担当：' + b.contact : ''}${b.notes ? '\nご伝言：' + b.notes : ''}\n\nGLAD応現院`;
+  const body = `【立願${isUpdate ? '更新' : '新規'}通知】${b.name}\n\n対象月：${monthPeriod('ja')}（${MONTH_CODE}）\n\n【変更内容】\n${changedEvs.join('\n')}\n\n【立願情報】\n役割：${b.role}\n対応言語：${b.language}${b.tmPrev != null ? '\nTM回数：今回が' + (b.tmPrev + 1) + '回目' : ''}${b.contact ? '\n連絡担当：' + b.contact : ''}${b.notes ? '\nご伝言：' + b.notes : ''}\n\nGLAD応現院`;
 
   const subject = `【BCC通知】${b.name} 様 立願${isUpdate ? '更新' : '新規'}（${I18N.ja.period}）`;
 
@@ -1768,7 +1779,7 @@ function sendConfirmEmail(b, evLines, isUpdate) {
     return                    '\n\n[Cancelled]\n'    + lines.join('\n');
   }
   const contact = { ja: b.contact ? `\n連絡担当：${b.contact}` : '', zh: b.contact ? `\n联络负责人：${b.contact}` : '', en: b.contact ? `\nContact: ${b.contact}` : '' };
-  const period  = { ja: I18N.ja.period, zh: I18N.zh.period, en: I18N.en.period };
+  const period  = { ja: monthPeriod('ja'), zh: monthPeriod('zh'), en: monthPeriod('en') };
   const svcs    = evLines.join('\n');
   const notes   = { ja: b.notes ? `\nご伝言：${b.notes}` : '', zh: b.notes ? `\n留言：${b.notes}` : '', en: b.notes ? `\nMessage: ${b.notes}` : '' };
   const subjects = {
