@@ -273,18 +273,18 @@ tr:hover td{background:var(--paper-warm);}
 
 <!-- ADMIN LOGIN OVERLAY -->
 <div id="adminOverlay" style="position:fixed;inset:0;background:rgba(26,22,18,0.7);z-index:200;">
-  <div style="background:var(--card);border:1px solid var(--border-mid);border-radius:var(--radius);padding:2rem 2rem 1.75rem;width:320px;text-align:center;">
+  <div style="background:var(--card);border:1px solid var(--border-mid);border-radius:var(--radius);padding:2rem 1.75rem 1.75rem;width:min(340px,calc(100vw - 2rem));text-align:center;box-sizing:border-box;">
     <div style="font-family:'Noto Serif JP','Noto Serif SC',serif;font-size:0.9rem;letter-spacing:0.2em;color:var(--ink);margin-bottom:1.25rem;">管理者ログイン</div>
     <div style="display:flex;margin-bottom:1.25rem;border-bottom:1px solid var(--border-mid);">
-      <button id="tab-pw-btn" onclick="switchLoginTab('pw')" style="flex:1;padding:7px;background:none;border:none;border-bottom:2px solid var(--gold);cursor:pointer;font-size:0.72rem;color:var(--gold-dark);font-family:inherit;letter-spacing:0.06em;">パスワード</button>
-      <button id="tab-su-btn" onclick="switchLoginTab('su')" style="flex:1;padding:7px;background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-size:0.72rem;color:var(--ink-faint);font-family:inherit;letter-spacing:0.06em;">スーパーユーザー</button>
+      <button id="tab-pw-btn" onclick="switchLoginTab('pw')" style="flex:1;padding:7px;background:none;border:none;border-bottom:2px solid var(--gold);cursor:pointer;font-size:0.72rem;color:var(--gold-dark);font-family:inherit;letter-spacing:0.06em;transition:all 0.2s;">パスワード</button>
+      <button id="tab-su-btn" onclick="switchLoginTab('su')" style="flex:1;padding:7px;background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-size:0.72rem;color:var(--ink-faint);font-family:inherit;letter-spacing:0.06em;transition:all 0.2s;">スーパーユーザー</button>
     </div>
     <div id="login-tab-pw">
-      <input type="password" id="adminPwInput" style="width:100%;padding:9px 12px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--paper);color:var(--ink);font-size:0.88rem;outline:none;letter-spacing:0.1em;" placeholder="パスワード" onkeydown="if(event.key==='Enter')confirmAdminLogin()">
+      <input type="password" id="adminPwInput" style="width:100%;padding:9px 12px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--paper);color:var(--ink);font-size:0.88rem;outline:none;letter-spacing:0.1em;box-sizing:border-box;" placeholder="パスワード" onkeydown="if(event.key==='Enter')confirmAdminLogin()">
     </div>
     <div id="login-tab-su" style="display:none;">
-      <input type="email"    id="adminEmailInput" style="width:100%;padding:9px 12px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--paper);color:var(--ink);font-size:0.85rem;outline:none;margin-bottom:8px;" placeholder="メールアドレス">
-      <input type="password" id="adminSuPwInput"  style="width:100%;padding:9px 12px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--paper);color:var(--ink);font-size:0.88rem;outline:none;letter-spacing:0.1em;" placeholder="パスワード" onkeydown="if(event.key==='Enter')confirmAdminLogin()">
+      <input type="email"    id="adminEmailInput" style="width:100%;padding:9px 12px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--paper);color:var(--ink);font-size:0.85rem;outline:none;margin-bottom:8px;box-sizing:border-box;" placeholder="メールアドレス">
+      <input type="password" id="adminSuPwInput"  style="width:100%;padding:9px 12px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--paper);color:var(--ink);font-size:0.88rem;outline:none;letter-spacing:0.1em;box-sizing:border-box;" placeholder="パスワード" onkeydown="if(event.key==='Enter')confirmAdminLogin()">
     </div>
     <div id="overlay-err" style="color:var(--danger);font-size:0.72rem;margin-top:6px;min-height:1rem;"></div>
     <div style="display:flex;gap:8px;margin-top:1rem;">
@@ -1358,9 +1358,12 @@ function switchLoginTab(tab) {
   currentLoginTab = tab;
   document.getElementById('login-tab-pw').style.display = tab === 'pw' ? 'block' : 'none';
   document.getElementById('login-tab-su').style.display = tab === 'su' ? 'block' : 'none';
-  const gold = tab === 'pw';
-  document.getElementById('tab-pw-btn').style.cssText = `border-bottom-color:${gold?'var(--gold)':'transparent'};color:${gold?'var(--gold-dark)':'var(--ink-faint)'}`;
-  document.getElementById('tab-su-btn').style.cssText = `border-bottom-color:${!gold?'var(--gold)':'transparent'};color:${!gold?'var(--gold-dark)':'var(--ink-faint)'}`;
+  const pwBtn = document.getElementById('tab-pw-btn');
+  const suBtn = document.getElementById('tab-su-btn');
+  pwBtn.style.borderBottomColor = tab === 'pw' ? 'var(--gold)' : 'transparent';
+  pwBtn.style.color = tab === 'pw' ? 'var(--gold-dark)' : 'var(--ink-faint)';
+  suBtn.style.borderBottomColor = tab === 'su' ? 'var(--gold)' : 'transparent';
+  suBtn.style.color = tab === 'su' ? 'var(--gold-dark)' : 'var(--ink-faint)';
   document.getElementById('overlay-err').textContent = '';
 }
 
