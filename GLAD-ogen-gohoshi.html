@@ -1,0 +1,1839 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GLAD ご奉仕立願</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;600&family=Noto+Sans+JP:wght@300;400&family=Noto+Serif+SC:wght@300;400&family=Noto+Sans+SC:wght@300;400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<style>
+/* ═══════════════════════════════════════
+   BASE
+═══════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --paper:#f7f4ef;--paper-warm:#ede8df;--card:#fff;
+  --ink:#2a2520;--ink-mid:#6b6058;--ink-faint:#a89f96;
+  --border:rgba(42,37,32,0.1);--border-mid:rgba(42,37,32,0.18);
+  --gold:#8b7355;--gold-light:#e8dece;--gold-dark:#6b5840;
+  --danger:#8b3a3a;--added:#2a5ea8;--radius:2px;
+}
+body{font-family:'Noto Sans JP','Noto Sans SC',sans-serif;font-weight:300;background:var(--paper);color:var(--ink);min-height:100vh;line-height:1.8;}
+
+/* ═══════════════════════════════════════
+   HEADER / NAV
+═══════════════════════════════════════ */
+.lang-bar{background:rgba(0,0,0,0.25);display:flex;justify-content:flex-end;padding:6px 1.5rem;gap:4px;}
+.lang-btn{padding:3px 10px;background:none;border:1px solid rgba(255,255,255,0.25);border-radius:1px;color:rgba(255,255,255,0.5);font-size:0.68rem;cursor:pointer;letter-spacing:0.06em;transition:all 0.18s;font-family:inherit;}
+.lang-btn:hover{border-color:rgba(255,255,255,0.55);color:rgba(255,255,255,0.8);}
+.lang-btn.active{border-color:var(--gold);color:var(--gold-light);background:rgba(139,115,85,0.18);}
+
+header{background:var(--ink);padding:1.5rem 2rem 1.75rem;text-align:center;}
+.header-mon{width:44px;height:44px;margin:0 auto 1rem;display:block;}
+header h1{font-family:'Noto Serif JP','Noto Serif SC',serif;font-weight:400;font-size:clamp(1rem,3vw,1.35rem);color:rgba(255,255,255,0.88);letter-spacing:0.25em;margin-bottom:0.3rem;}
+.header-sub{font-size:0.72rem;color:rgba(255,255,255,0.38);letter-spacing:0.18em;}
+.header-period{margin-top:0.9rem;font-size:0.78rem;color:rgba(200,175,130,0.8);letter-spacing:0.15em;font-family:'Noto Serif JP','Noto Serif SC',serif;}
+
+nav{background:var(--ink);border-top:1px solid rgba(255,255,255,0.07);display:flex;justify-content:center;}
+.nav-item{padding:0.7rem 1.8rem;font-size:0.72rem;color:rgba(255,255,255,0.38);cursor:pointer;letter-spacing:0.15em;border-bottom:1.5px solid transparent;transition:all 0.2s;}
+.nav-item:hover{color:rgba(255,255,255,0.65);}
+.nav-item.active{color:rgba(200,175,130,0.9);border-bottom-color:var(--gold);}
+
+/* ═══════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════ */
+.panel{display:none;}.panel.active{display:block;}
+.wrap{max-width:860px;margin:0 auto;padding:2.5rem 1.5rem;box-sizing:border-box;width:100%;}
+.sec-head{text-align:center;margin-bottom:2rem;}
+.sec-title{font-family:'Noto Serif JP','Noto Serif SC',serif;font-weight:400;font-size:0.95rem;letter-spacing:0.22em;color:var(--ink);margin-bottom:0.7rem;}
+.sec-rule{height:1px;background:var(--border-mid);position:relative;margin:0 auto;max-width:220px;}
+.sec-rule::after{content:'◆';position:absolute;left:50%;transform:translateX(-50%) translateY(-50%);background:var(--paper);padding:0 8px;font-size:7px;color:var(--gold);}
+.month-label{font-size:0.7rem;color:var(--ink-faint);letter-spacing:0.12em;margin-bottom:0.75rem;padding-left:2px;}
+.empty{text-align:center;padding:3rem;color:var(--ink-faint);font-size:0.78rem;letter-spacing:0.12em;}
+
+/* ═══════════════════════════════════════
+   EVENT CARDS
+═══════════════════════════════════════ */
+.events-grid{display:flex;flex-direction:column;gap:7px;margin-bottom:1.75rem;}
+.event-card{display:flex;align-items:stretch;background:var(--card);border:1px solid var(--border-mid);border-radius:var(--radius);cursor:pointer;transition:border-color 0.18s,background 0.18s;overflow:hidden;min-width:0;}
+.event-card:hover{border-color:var(--gold);}
+.event-card.selected{border-color:var(--gold);background:var(--gold-light);}
+.event-date-col{width:58px;flex-shrink:0;background:var(--paper-warm);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px;border-right:1px solid var(--border);transition:background 0.18s;}
+.event-card.selected .event-date-col{background:rgba(139,115,85,0.14);}
+.event-date-day{font-family:'Noto Serif JP','Noto Serif SC',serif;font-size:1.35rem;line-height:1;color:var(--ink);}
+.event-date-wd{font-size:0.6rem;color:var(--ink-faint);letter-spacing:0.06em;margin-top:3px;}
+.event-date-wd.sat{color:#4a6080;}.event-date-wd.sun{color:#7a3a30;}
+.event-body{flex:1;padding:10px 13px;min-width:0;}
+.event-name{font-family:'Noto Serif JP','Noto Serif SC',serif;font-size:0.88rem;color:var(--ink);letter-spacing:0.06em;line-height:1.6;}
+.event-meta{font-size:0.7rem;color:var(--ink-mid);margin-top:3px;}
+.event-right{display:flex;align-items:center;padding:10px 13px;flex-shrink:0;}
+.check-mark{width:19px;height:19px;border-radius:50%;border:1.5px solid var(--border-mid);display:flex;align-items:center;justify-content:center;transition:all 0.18s;}
+.event-card.selected .check-mark{background:var(--gold);border-color:var(--gold);}
+.check-mark svg{opacity:0;transition:opacity 0.15s;}
+.event-card.past{opacity:0.38;cursor:not-allowed;pointer-events:none;}
+.event-card.past .event-date-col{background:var(--paper-warm);}
+.event-card.past .check-mark{display:none;}
+
+.sel-summary{background:var(--ink);color:rgba(255,255,255,0.78);padding:11px 16px;border-radius:var(--radius);font-size:0.76rem;letter-spacing:0.06em;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.sel-summary.hidden{display:none;}
+.sel-count em{font-style:normal;font-family:'Noto Serif JP','Noto Serif SC',serif;font-size:1.05rem;color:rgba(200,175,130,0.9);}
+
+/* ═══════════════════════════════════════
+   FORM
+═══════════════════════════════════════ */
+.form-section{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-bottom:1rem;}
+.form-section-title{font-family:'Noto Serif JP','Noto Serif SC',serif;font-size:0.75rem;color:var(--ink-mid);letter-spacing:0.15em;margin-bottom:1.1rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border);}
+.form-group{margin-bottom:1rem;}
+label{display:block;font-size:0.72rem;color:var(--ink-mid);letter-spacing:0.08em;margin-bottom:5px;}
+input[type=text],input[type=email],input[type=number],select,textarea{width:100%;padding:9px 12px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--paper);color:var(--ink);font-family:'Noto Sans JP','Noto Sans SC',sans-serif;font-weight:300;font-size:0.85rem;transition:border-color 0.2s,box-shadow 0.2s;outline:none;-webkit-appearance:none;}
+input:focus,select:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(139,115,85,0.1);background:var(--card);}
+textarea{resize:vertical;min-height:68px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.checkbox-group{display:flex;flex-wrap:wrap;gap:6px 12px;padding:4px 0;}
+.cb-item{display:flex;align-items:center;gap:5px;font-size:0.82rem;color:var(--ink);cursor:pointer;letter-spacing:0.04em;}
+.cb-item input[type=checkbox]{width:15px;height:15px;accent-color:var(--gold);cursor:pointer;flex-shrink:0;}
+.err{color:var(--danger);font-size:0.75rem;margin-bottom:10px;display:none;}
+.submit-btn{width:100%;padding:13px;background:var(--ink);color:rgba(255,255,255,0.85);border:none;border-radius:var(--radius);font-family:'Noto Serif JP','Noto Serif SC',serif;font-weight:400;font-size:0.85rem;letter-spacing:0.2em;cursor:pointer;transition:background 0.2s;}
+.submit-btn:hover{background:#3d3530;}
+
+/* ═══════════════════════════════════════
+   CONFIRM
+═══════════════════════════════════════ */
+.confirm-block{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:2.5rem 2rem;text-align:center;display:none;}
+.confirm-block.vis{display:block;}
+.confirm-icon{width:40px;height:40px;margin:0 auto 1rem;}
+.confirm-title{font-family:'Noto Serif JP','Noto Serif SC',serif;font-size:0.95rem;letter-spacing:0.18em;margin-bottom:0.5rem;}
+.confirm-name{font-size:0.82rem;color:var(--ink-mid);}
+.confirm-events{margin-top:1rem;text-align:left;background:var(--paper-warm);padding:12px 16px;border-radius:var(--radius);}
+.confirm-event-item{font-size:0.76rem;color:var(--ink-mid);padding:3px 0;letter-spacing:0.04em;}
+.confirm-event-item::before{content:'◇ ';color:var(--gold);}
+.reset-btn{margin-top:1.5rem;padding:8px 24px;background:none;border:1px solid var(--border-mid);border-radius:var(--radius);cursor:pointer;font-family:'Noto Sans JP','Noto Sans SC',sans-serif;font-size:0.75rem;letter-spacing:0.1em;color:var(--ink-mid);transition:border-color 0.2s;}
+.reset-btn:hover{border-color:var(--gold);}
+
+/* ═══════════════════════════════════════
+   VOLUNTEER LIST
+═══════════════════════════════════════ */
+.list-filter{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:1.25rem;}
+.filter-btn{padding:5px 13px;border:1px solid var(--border-mid);border-radius:var(--radius);background:none;font-family:'Noto Sans JP','Noto Sans SC',sans-serif;font-size:0.7rem;letter-spacing:0.06em;color:var(--ink-mid);cursor:pointer;transition:all 0.18s;}
+.filter-btn:hover{border-color:var(--gold);}
+.filter-btn.active{background:var(--ink);color:rgba(255,255,255,0.8);border-color:var(--ink);}
+.att-group{margin-bottom:1.5rem;}
+.att-group-label{font-family:'Noto Serif JP','Noto Serif SC',serif;font-size:0.78rem;color:var(--ink-mid);letter-spacing:0.12em;padding-bottom:6px;border-bottom:1px solid var(--border);margin-bottom:8px;}
+.attendee-item{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);}
+.att-num{font-size:0.68rem;color:var(--ink-faint);min-width:18px;text-align:right;}
+.att-avatar{width:30px;height:30px;border-radius:50%;background:var(--gold-light);color:var(--gold-dark);display:flex;align-items:center;justify-content:center;font-size:0.68rem;flex-shrink:0;}
+.att-info{flex:1;min-width:0;}
+.att-name{font-size:0.85rem;}
+.att-sub{font-size:0.68rem;color:var(--ink-faint);}
+
+/* ═══════════════════════════════════════
+   ADMIN
+═══════════════════════════════════════ */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:2rem;}
+.stat{background:var(--card);border:1px solid var(--border);padding:1rem;text-align:center;}
+.stat-n{font-family:'Noto Serif JP','Noto Serif SC',serif;font-size:1.8rem;color:var(--ink);line-height:1;}
+.stat-l{font-size:0.65rem;color:var(--ink-faint);letter-spacing:0.08em;margin-top:4px;}
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+table{width:100%;border-collapse:collapse;font-size:0.78rem;}
+th{text-align:left;padding:7px 10px;font-size:0.65rem;letter-spacing:0.08em;color:var(--ink-faint);border-bottom:1px solid var(--border-mid);font-weight:400;white-space:nowrap;}
+td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+tr:hover td{background:var(--paper-warm);}
+.del-btn{background:none;border:1px solid rgba(139,58,58,0.3);color:var(--danger);padding:3px 9px;border-radius:1px;font-size:0.65rem;cursor:pointer;font-family:inherit;letter-spacing:0.04em;transition:all 0.18s;}
+.del-btn:hover{background:rgba(139,58,58,0.07);}
+
+/* ═══════════════════════════════════════
+   OVERLAYS & TOAST
+═══════════════════════════════════════ */
+#adminOverlay{display:none;}
+#adminOverlay.open{display:flex;align-items:center;justify-content:center;}
+
+/* Confirmation modal */
+#confirmModal{display:none;position:fixed;inset:0;background:rgba(26,22,18,0.65);z-index:300;align-items:flex-start;justify-content:center;padding:1.5rem 1rem;overflow-y:auto;}
+#confirmModal.open{display:flex;}
+.cmod-box{background:var(--card);border-radius:var(--radius);width:100%;max-width:560px;overflow:hidden;margin:auto;}
+.cmod-head{background:var(--ink);padding:1.25rem 1.5rem;display:flex;align-items:center;gap:12px;}
+.cmod-head-icon{width:28px;height:28px;flex-shrink:0;}
+.cmod-head-title{font-family:'Noto Serif JP','Noto Serif SC',serif;font-size:0.88rem;letter-spacing:0.18em;color:rgba(255,255,255,0.88);}
+.cmod-head-sub{font-size:0.68rem;color:rgba(200,175,130,0.8);margin-top:2px;letter-spacing:0.08em;}
+.cmod-body{padding:1.25rem 1.5rem;}
+.cmod-section{margin-bottom:1.1rem;}
+.cmod-section-label{font-size:0.65rem;color:var(--ink-faint);letter-spacing:0.14em;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--border);}
+.cmod-row{display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:0.8rem;align-items:baseline;}
+.cmod-row:last-child{border-bottom:none;}
+.cmod-row-label{color:var(--ink-mid);font-size:0.7rem;min-width:80px;flex-shrink:0;letter-spacing:0.04em;}
+.cmod-row-val{color:var(--ink);flex:1;}
+.cmod-ev{display:flex;align-items:baseline;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);font-size:0.8rem;}
+.cmod-ev:last-child{border-bottom:none;}
+.cmod-badge{font-size:0.6rem;padding:1px 5px;border-radius:1px;flex-shrink:0;letter-spacing:0.04em;}
+.cmod-badge.added{background:rgba(42,94,168,0.12);color:var(--added);}
+.cmod-badge.cancelled{background:rgba(139,58,58,0.1);color:var(--danger);text-decoration:line-through;}
+.cmod-badge.past{background:rgba(168,159,150,0.15);color:var(--ink-faint);}
+.cmod-badge.normal{background:rgba(139,115,85,0.1);color:var(--gold-dark);}
+.cmod-ev-name.past{color:var(--ink-faint);}
+.cmod-ev-name.cancelled{color:var(--danger);text-decoration:line-through;}
+.cmod-ev-name.added{color:var(--added);}
+.cmod-footer{padding:1rem 1.5rem;border-top:1px solid var(--border);display:flex;gap:10px;}
+.cmod-footer button{flex:1;padding:11px;border-radius:var(--radius);cursor:pointer;font-family:'Noto Serif JP','Noto Serif SC',serif;font-size:0.8rem;letter-spacing:0.12em;transition:all 0.2s;}
+.cmod-btn-cancel{background:none;border:1px solid var(--border-mid);color:var(--ink-mid);}
+.cmod-btn-cancel:hover{border-color:var(--gold);color:var(--ink);}
+.cmod-btn-ok{background:var(--ink);border:none;color:rgba(255,255,255,0.88);}
+.cmod-btn-ok:hover{background:#3d3530;}
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--ink);color:rgba(255,255,255,0.82);padding:11px 16px;border-radius:var(--radius);font-size:0.75rem;letter-spacing:0.06em;box-shadow:0 6px 24px rgba(0,0,0,0.2);display:flex;align-items:center;gap:9px;transform:translateY(60px);opacity:0;transition:all 0.3s cubic-bezier(.34,1.56,.64,1);z-index:999;max-width:300px;pointer-events:none;}
+.toast.show{transform:translateY(0);opacity:1;pointer-events:auto;}
+.toast-dot{width:7px;height:7px;border-radius:50%;background:var(--gold);flex-shrink:0;}
+
+/* ═══════════════════════════════════════
+   MOBILE  (max-width: 600px)
+═══════════════════════════════════════ */
+@media(max-width:600px){
+  .lang-bar{padding:6px 1rem;}
+  .lang-btn{padding:4px 10px;font-size:0.7rem;}
+  header{padding:1.25rem 1rem 1.5rem;}
+  .header-mon{width:36px;height:36px;margin-bottom:0.75rem;}
+  header h1{font-size:0.95rem;letter-spacing:0.1em;}
+  .header-sub{font-size:0.68rem;}
+  .header-period{font-size:0.72rem;}
+  nav{justify-content:stretch;}
+  .nav-item{flex:1;text-align:center;padding:0.75rem 0.25rem;font-size:0.65rem;letter-spacing:0.04em;}
+  .wrap{padding:1.25rem 0.85rem;}
+  .sec-title{font-size:0.85rem;letter-spacing:0.1em;}
+  .month-label{font-size:0.65rem;}
+  .event-date-col{width:48px;}
+  .event-date-day{font-size:1.1rem;}
+  .event-body{padding:8px 8px;}
+  .event-name{font-size:0.78rem;letter-spacing:0.02em;}
+  .event-meta{font-size:0.64rem;}
+  .event-right{padding:8px 8px;}
+  .check-mark{width:17px;height:17px;}
+  .sel-summary{flex-direction:column;align-items:flex-start;gap:4px;padding:10px 12px;}
+  .form-section{padding:1rem 0.85rem;}
+  .form-row{grid-template-columns:1fr;}
+  .form-group{margin-bottom:0.85rem;}
+  label{font-size:0.7rem;}
+  input[type=text],input[type=email],input[type=number],select,textarea{font-size:1rem;padding:8px 10px;}
+  .checkbox-group{gap:5px 10px;}
+  .cb-item{font-size:0.8rem;}
+  .submit-btn{font-size:0.82rem;padding:15px;letter-spacing:0.1em;}
+  .confirm-block{padding:1.75rem 1rem;}
+  .confirm-event-item{font-size:0.72rem;}
+  .stats-row{grid-template-columns:1fr 1fr;}
+  .stat-n{font-size:1.5rem;}
+  .tbl-wrap{margin:0 -0.85rem;padding:0 0.85rem;}
+  table{font-size:0.68rem;min-width:700px;}
+  th,td{padding:5px 7px;}
+  .list-filter{gap:4px;}
+  .filter-btn{padding:4px 8px;font-size:0.64rem;}
+  .att-group-label{font-size:0.72rem;}
+  .attendee-item{gap:8px;padding:8px 0;}
+  .att-avatar{width:26px;height:26px;font-size:0.62rem;}
+  .att-name{font-size:0.8rem;}
+  .toast{left:1rem;right:1rem;bottom:1rem;max-width:none;}
+  #adminOverlay > div{width:calc(100% - 2rem);padding:1.5rem 1rem;}
+}
+</style>
+</head>
+<body>
+
+<!-- LANGUAGE BAR -->
+<div style="background:var(--ink);">
+  <div class="lang-bar">
+    <button class="lang-btn active" onclick="setLang('ja')">日本語</button>
+    <button class="lang-btn" onclick="setLang('zh')">中文</button>
+    <button class="lang-btn" onclick="setLang('en')">English</button>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <svg class="header-mon" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="22" cy="22" r="20" stroke="rgba(200,175,130,0.45)" stroke-width="0.7"/>
+    <circle cx="22" cy="22" r="14" stroke="rgba(200,175,130,0.45)" stroke-width="0.7"/>
+    <circle cx="22" cy="22" r="3.5" fill="rgba(200,175,130,0.55)"/>
+    <line x1="22" y1="2"  x2="22" y2="8"  stroke="rgba(200,175,130,0.55)" stroke-width="0.9"/>
+    <line x1="22" y1="36" x2="22" y2="42" stroke="rgba(200,175,130,0.55)" stroke-width="0.9"/>
+    <line x1="2"  y1="22" x2="8"  y2="22" stroke="rgba(200,175,130,0.55)" stroke-width="0.9"/>
+    <line x1="36" y1="22" x2="42" y2="22" stroke="rgba(200,175,130,0.55)" stroke-width="0.9"/>
+    <line x1="6"    y1="6"    x2="9.9"  y2="9.9"  stroke="rgba(200,175,130,0.35)" stroke-width="0.9"/>
+    <line x1="34.1" y1="34.1" x2="38"   y2="38"   stroke="rgba(200,175,130,0.35)" stroke-width="0.9"/>
+    <line x1="6"    y1="38"   x2="9.9"  y2="34.1" stroke="rgba(200,175,130,0.35)" stroke-width="0.9"/>
+    <line x1="34.1" y1="9.9"  x2="38"   y2="6"    stroke="rgba(200,175,130,0.35)" stroke-width="0.9"/>
+  </svg>
+  <h1 id="hdr-title"></h1>
+  <div class="header-sub">応現院</div>
+  <div class="header-period" id="hdr-period"></div>
+</header>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-item active" onclick="switchTab('form')"  id="nav-form"></div>
+  <div class="nav-item"        onclick="switchTab('list')"  id="nav-list"></div>
+  <div class="nav-item"        onclick="switchTab('admin')" id="nav-admin"></div>
+</nav>
+
+<!-- ADMIN LOGIN OVERLAY -->
+<div id="adminOverlay" style="position:fixed;inset:0;background:rgba(26,22,18,0.7);z-index:200;">
+  <div style="background:var(--card);border:1px solid var(--border-mid);border-radius:var(--radius);padding:2rem 2rem 1.75rem;width:320px;text-align:center;">
+    <div style="font-family:'Noto Serif JP','Noto Serif SC',serif;font-size:0.9rem;letter-spacing:0.2em;color:var(--ink);margin-bottom:1.25rem;">管理者ログイン</div>
+    <div style="display:flex;margin-bottom:1.25rem;border-bottom:1px solid var(--border-mid);">
+      <button id="tab-pw-btn" onclick="switchLoginTab('pw')" style="flex:1;padding:7px;background:none;border:none;border-bottom:2px solid var(--gold);cursor:pointer;font-size:0.72rem;color:var(--gold-dark);font-family:inherit;letter-spacing:0.06em;">パスワード</button>
+      <button id="tab-su-btn" onclick="switchLoginTab('su')" style="flex:1;padding:7px;background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-size:0.72rem;color:var(--ink-faint);font-family:inherit;letter-spacing:0.06em;">スーパーユーザー</button>
+    </div>
+    <div id="login-tab-pw">
+      <input type="password" id="adminPwInput" style="width:100%;padding:9px 12px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--paper);color:var(--ink);font-size:0.88rem;outline:none;letter-spacing:0.1em;" placeholder="パスワード" onkeydown="if(event.key==='Enter')confirmAdminLogin()">
+    </div>
+    <div id="login-tab-su" style="display:none;">
+      <input type="email"    id="adminEmailInput" style="width:100%;padding:9px 12px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--paper);color:var(--ink);font-size:0.85rem;outline:none;margin-bottom:8px;" placeholder="メールアドレス">
+      <input type="password" id="adminSuPwInput"  style="width:100%;padding:9px 12px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--paper);color:var(--ink);font-size:0.88rem;outline:none;letter-spacing:0.1em;" placeholder="パスワード" onkeydown="if(event.key==='Enter')confirmAdminLogin()">
+    </div>
+    <div id="overlay-err" style="color:var(--danger);font-size:0.72rem;margin-top:6px;min-height:1rem;"></div>
+    <div style="display:flex;gap:8px;margin-top:1rem;">
+      <button onclick="cancelAdminLogin()"  style="flex:1;padding:9px;background:none;border:1px solid var(--border-mid);border-radius:var(--radius);cursor:pointer;font-size:0.78rem;color:var(--ink-mid);font-family:inherit;">キャンセル</button>
+      <button onclick="confirmAdminLogin()" style="flex:1;padding:9px;background:var(--ink);color:rgba(255,255,255,0.85);border:none;border-radius:var(--radius);cursor:pointer;font-size:0.78rem;font-family:inherit;" id="overlay-ok">確認</button>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL: FORM -->
+<div class="panel active" id="panel-form">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-title" id="sec-select"></div>
+      <div class="sec-rule"></div>
+    </div>
+    <div class="month-label" id="month-label"></div>
+    <div id="grid-main" class="events-grid"></div>
+    <div class="sel-summary hidden" id="selSummary">
+      <div class="sel-count"><em id="selCount">0</em> <span id="sel-unit"></span></div>
+      <div id="selBreakdown" style="font-size:0.66rem;color:rgba(255,255,255,0.5);letter-spacing:0.04em;"></div>
+    </div>
+    <div id="formWrap">
+      <div id="reception-closed-msg" style="display:none;background:var(--paper-warm);border:1px solid var(--border-mid);border-radius:var(--radius);padding:2rem;text-align:center;margin-bottom:1rem;">
+        <div style="font-family:'Noto Serif JP',serif;font-size:0.95rem;letter-spacing:0.15em;color:var(--ink);margin-bottom:0.5rem;">現在受付を停止しています</div>
+        <div style="font-size:0.78rem;color:var(--ink-faint);letter-spacing:0.06em;">受付期間外です。担当者にお問い合わせください。</div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-title" id="form-sec-title"></div>
+        <div class="form-row">
+          <div class="form-group"><label id="lbl-last"></label><input type="text" id="lastName" placeholder="山田"></div>
+          <div class="form-group"><label id="lbl-first"></label><input type="text" id="firstName" placeholder="花子"></div>
+        </div>
+        <div class="form-group"><label id="lbl-email"></label><input type="email" id="email" placeholder="hanako@example.com"></div>
+        <div class="form-group">
+          <label id="lbl-role"></label>
+          <select id="role" onchange="onRoleChange(this)">
+            <option value="">── お選びください ──</option>
+            <option value="センター">センター</option>
+            <option value="アシスタント">アシスタント</option>
+            <option value="在日">在日</option>
+            <option value="日本人">日本人</option>
+            <option value="TM(在日)">TM(在日)</option>
+            <option value="TM(日本人)">TM(日本人)</option>
+          </select>
+        </div>
+        <div class="form-group" id="tmCountWrap" style="display:none;">
+          <label id="lbl-tm-count"></label>
+          <input type="number" id="tmCount" min="0" value="0" placeholder="0">
+        </div>
+        <div class="form-group" id="tmEscortWrap" style="display:none;">
+          <label id="lbl-tm-escort"></label>
+          <input type="text" id="tmEscort">
+        </div>
+        <div class="form-group">
+          <label id="lbl-lang"></label>
+          <div class="checkbox-group" id="langCheckboxes"></div>
+          <div id="otherLangWrap" style="display:none;margin-top:6px;">
+            <input type="text" id="otherLang">
+          </div>
+        </div>
+        <div class="form-group">
+          <label id="lbl-contact"></label>
+          <input type="text" id="contact">
+          <div style="font-size:0.66rem;color:var(--ink-faint);margin-top:4px;letter-spacing:0.04em;" id="contact-hint"></div>
+        </div>
+        <div class="form-group"><label id="lbl-notes"></label><textarea id="notes"></textarea></div>
+      </div>
+      <div class="err" id="errMsg"></div>
+      <button class="submit-btn" id="submit-btn" onclick="submitForm()"></button>
+    </div>
+    <div class="confirm-block" id="confirmBlock">
+      <svg class="confirm-icon" viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="18" stroke="#8b7355" stroke-width="0.8"/>
+        <path d="M12 20l5 5 11-11" stroke="#8b7355" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="confirm-title"  id="confirm-title"></div>
+      <div class="confirm-name"   id="confirmName"></div>
+      <div class="confirm-events" id="confirmEvents"></div>
+      <div style="margin-top:0.75rem;font-size:0.72rem;color:var(--ink-faint);letter-spacing:0.04em;" id="confirm-note"></div>
+      <button class="reset-btn" id="reset-btn" onclick="resetForm()"></button>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL: VOLUNTEER LIST -->
+<div class="panel" id="panel-list">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-title" id="sec-list-title"></div>
+      <div class="sec-rule"></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
+      <button id="dl-btn" onclick="downloadExcel()" style="padding:7px 18px;background:var(--ink);color:rgba(255,255,255,0.82);border:none;border-radius:var(--radius);font-family:'Noto Sans JP',sans-serif;font-size:0.72rem;letter-spacing:0.1em;cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background='#3d3530'" onmouseout="this.style.background='var(--ink)'"></button>
+    </div>
+    <div class="list-filter" id="listFilter"></div>
+    <div class="empty" id="listEmpty"></div>
+    <div id="attList"></div>
+  </div>
+</div>
+
+<!-- PANEL: ADMIN -->
+<div class="panel" id="panel-admin">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-title" id="sec-admin-title"></div>
+      <div class="sec-rule"></div>
+      <div style="margin-top:0.75rem;font-size:0.7rem;color:var(--ink-faint);">
+        <span id="admin-user-label"></span>
+        <button onclick="adminLogout()" style="margin-left:8px;background:none;border:none;color:var(--gold);font-size:0.7rem;cursor:pointer;text-decoration:underline;font-family:inherit;">ログアウト</button>
+      </div>
+    </div>
+
+    <!-- Password change (superuser only) -->
+    <div id="pw-change-section" style="display:none;background:var(--paper-warm);border:1px solid var(--border-mid);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:1.5rem;">
+      <div style="font-family:'Noto Serif JP',serif;font-size:0.8rem;letter-spacing:0.12em;color:var(--ink);margin-bottom:0.75rem;">管理者パスワード変更</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;">
+        <div>
+          <label style="font-size:0.68rem;color:var(--ink-mid);">新しいパスワード</label>
+          <input type="password" id="new-pw-input"   style="width:100%;padding:8px 10px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--card);color:var(--ink);font-size:0.85rem;outline:none;" placeholder="新パスワード">
+        </div>
+        <div>
+          <label style="font-size:0.68rem;color:var(--ink-mid);">確認</label>
+          <input type="password" id="new-pw-confirm" style="width:100%;padding:8px 10px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--card);color:var(--ink);font-size:0.85rem;outline:none;" placeholder="再入力">
+        </div>
+        <button onclick="changeAdminPassword()" style="padding:8px 14px;background:var(--ink);color:rgba(255,255,255,0.85);border:none;border-radius:var(--radius);cursor:pointer;font-size:0.75rem;font-family:inherit;white-space:nowrap;">変更</button>
+      </div>
+      <div id="pw-change-err" style="font-size:0.68rem;color:var(--danger);margin-top:6px;min-height:1rem;"></div>
+    </div>
+
+    <!-- Reception toggle -->
+    <div style="background:var(--card);border:1px solid var(--border-mid);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+      <div>
+        <div style="font-family:'Noto Serif JP',serif;font-size:0.82rem;letter-spacing:0.12em;color:var(--ink);">立願受付</div>
+        <div style="font-size:0.7rem;color:var(--ink-faint);margin-top:3px;" id="reception-status-label">読み込み中...</div>
+      </div>
+      <button id="reception-toggle-btn" onclick="toggleReception()" style="padding:8px 24px;border:none;border-radius:var(--radius);cursor:pointer;font-family:'Noto Serif JP',serif;font-size:0.8rem;letter-spacing:0.1em;transition:all 0.2s;">...</button>
+    </div>
+    <!-- Reset changes -->
+    <div style="padding-bottom:1.5rem;margin-bottom:1.5rem;border-bottom:1px solid var(--border);">
+      <button onclick="resetChanges()" style="padding:6px 16px;background:none;border:1px solid var(--border-mid);border-radius:var(--radius);cursor:pointer;font-family:'Noto Sans JP',sans-serif;font-size:0.7rem;letter-spacing:0.06em;color:var(--ink-faint);transition:all 0.2s;" onmouseover="this.style.borderColor='var(--danger)';this.style.color='var(--danger)'" onmouseout="this.style.borderColor='var(--border-mid)';this.style.color='var(--ink-faint)'">🔄 追加・キャンセルを初期化する</button>
+      <div style="font-size:0.65rem;color:var(--ink-faint);margin-top:4px;letter-spacing:0.04em;">現在の立願を「最初の立願」として扱い、追加・キャンセル記録をリセットします</div>
+    </div>
+
+    <!-- BCC notification settings -->
+    <div style="background:var(--card);border:1px solid var(--border-mid);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:1.5rem;">
+      <div style="font-family:'Noto Serif JP',serif;font-size:0.82rem;letter-spacing:0.12em;color:var(--ink);margin-bottom:0.75rem;">📧 直近の追加・キャンセル通知</div>
+      <div style="font-size:0.7rem;color:var(--ink-faint);margin-bottom:0.85rem;letter-spacing:0.04em;">設定した日数以内の法要に追加・キャンセルがあった場合、指定メールアドレスにBCCで通知します。</div>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-bottom:8px;">
+        <div>
+          <label style="font-size:0.68rem;color:var(--ink-mid);display:block;margin-bottom:4px;">通知先メールアドレス（複数の場合はカンマ区切り）</label>
+          <input type="text" id="bcc-email-input" style="width:100%;padding:8px 10px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--paper);color:var(--ink);font-size:0.85rem;outline:none;" placeholder="admin@example.com, staff@example.com">
+        </div>
+        <div>
+          <label style="font-size:0.68rem;color:var(--ink-mid);display:block;margin-bottom:4px;">通知日数</label>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <input type="number" id="bcc-days-input" min="1" max="30" style="width:64px;padding:8px 10px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--paper);color:var(--ink);font-size:0.85rem;outline:none;" placeholder="3">
+            <span style="font-size:0.72rem;color:var(--ink-mid);white-space:nowrap;">日以内</span>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button onclick="saveBccSettings()" style="padding:7px 18px;background:var(--ink);color:rgba(255,255,255,0.85);border:none;border-radius:var(--radius);cursor:pointer;font-size:0.75rem;font-family:inherit;letter-spacing:0.06em;">保存</button>
+        <div id="bcc-save-msg" style="font-size:0.7rem;color:var(--gold-dark);min-height:1rem;"></div>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat"><div class="stat-n" id="admTotal">0</div><div class="stat-l" id="adm-lbl-total"></div></div>
+      <div class="stat"><div class="stat-n" id="admJa">0</div><div class="stat-l">日本語</div></div>
+      <div class="stat"><div class="stat-n" id="admOther">0</div><div class="stat-l" id="adm-lbl-other"></div></div>
+      <div class="stat"><div class="stat-n" id="admExt">0</div><div class="stat-l" id="adm-lbl-ext"></div></div>
+    </div>
+    <div id="admSections"></div>
+    <div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--border);text-align:center;">
+      <button onclick="seedDemoData()" style="padding:8px 20px;background:none;border:1px solid var(--border-mid);border-radius:var(--radius);cursor:pointer;font-family:'Noto Sans JP',sans-serif;font-size:0.72rem;letter-spacing:0.08em;color:var(--ink-faint);transition:all 0.2s;" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--ink)'" onmouseout="this.style.borderColor='var(--border-mid)';this.style.color='var(--ink-faint)'">🔧 デモデータを投入する</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><div class="toast-dot"></div><span id="toastMsg"></span></div>
+
+<!-- CONFIRMATION MODAL -->
+<div id="confirmModal">
+  <div class="cmod-box">
+    <div class="cmod-head">
+      <svg class="cmod-head-icon" viewBox="0 0 28 28" fill="none">
+        <circle cx="14" cy="14" r="12" stroke="rgba(200,175,130,0.6)" stroke-width="0.8"/>
+        <path d="M8 14l4 4 8-8" stroke="rgba(200,175,130,0.9)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div>
+        <div class="cmod-head-title" id="cmod-title"></div>
+        <div class="cmod-head-sub"   id="cmod-sub"></div>
+      </div>
+    </div>
+    <div class="cmod-body">
+      <div class="cmod-section" id="cmod-services-section">
+        <div class="cmod-section-label" id="cmod-services-label"></div>
+        <div id="cmod-services"></div>
+      </div>
+      <div class="cmod-section" id="cmod-cancelled-section" style="display:none;">
+        <div class="cmod-section-label" id="cmod-cancelled-label"></div>
+        <div id="cmod-cancelled"></div>
+      </div>
+      <div class="cmod-section">
+        <div class="cmod-section-label" id="cmod-info-label"></div>
+        <div id="cmod-info"></div>
+      </div>
+    </div>
+    <div class="cmod-footer">
+      <button class="cmod-btn-cancel" onclick="closeConfirmModal()" id="cmod-btn-back"></button>
+      <button class="cmod-btn-ok"     onclick="submitConfirmed()"   id="cmod-btn-ok"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════
+// CONFIG  ← 毎月ここだけ変更
+// ═══════════════════════════════════════
+const PROJECT_CODE     = 'GLAD';
+const MONTH_CODE       = '2026-04';
+const SUPER_USER_EMAIL = 'masazumi.yoshikawa@gmail.com';
+const SUPABASE_URL     = 'https://brttvnrlaahoqkepzyck.supabase.co';
+const SUPABASE_KEY     = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJydHR2bnJsYWFob3FrZXB6eWNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MjMxMjYsImV4cCI6MjA4OTQ5OTEyNn0.7yEZpH68JoBhdqFsF8s28nfHVVX4hnoM6DHcD9A8GkQ';
+const EMAILJS_PUBLIC   = 'pzpq1mqWlAV7x16tx';
+const EMAILJS_SERVICE  = 'service_ipxh0mu';
+const EMAILJS_TEMPLATE = 'template_4hkdbhc';
+const ADMIN_PW_SETTING  = PROJECT_CODE + '_' + MONTH_CODE + '_admin_pw';
+const RECEPTION_SETTING = PROJECT_CODE + '_' + MONTH_CODE + '_reception';
+const BCC_EMAIL_SETTING = PROJECT_CODE + '_bcc_email'; // 月をまたいで共通
+const BCC_DAYS_SETTING  = PROJECT_CODE + '_bcc_days';  // 月をまたいで共通
+
+// ═══════════════════════════════════════
+// EVENT LIST  ← 毎月ここを差し替え
+// ═══════════════════════════════════════
+const EVENTS = [
+  {id:'e01', day:'4',  wd:6, name:{ja:'廻向法要',                                                          zh:'廻向法要',                                  en:'Merit Transfer Service'},                                                                                                                                             time:'10:30', gather:'集合8:20（センター8:10）'},
+  {id:'e02', day:'8',  wd:3, name:{ja:'立教90年 真導院様お誕生89年セレモニー併せて降誕会',                  zh:'立教90年 真导院诞辰89年典礼暨降诞会',          en:'In Our 90th Year: Ceremony for the 89th Anniversary of Shindoin\'s Birth and Feast of the Buddha\'s Birth'}, time:'10:30', gather:'集合8:10（センター8:00）', restricted:true},
+  {id:'e03', day:'9',  wd:4, name:{ja:'一如祈念',                                                          zh:'一如祈念',                                  en:'Prayer Gathering'},                                                                                                                                                   time:'19:00', gather:'集合18:00'},
+  {id:'e04', day:'11', wd:6, name:{ja:'正輪会',                                                            zh:'正轮会',                                    en:'Feast of Compassion'},                                                                                                                                                time:'10:30', gather:'集合8:20（センター8:10）'},
+  {id:'e05', day:'12', wd:0, name:{ja:'一如祈念',                                                          zh:'一如祈念',                                  en:'Prayer Gathering'},                                                                                                                                                   time:'13:00', gather:'集合10:50'},
+  {id:'e06', day:'15', wd:3, name:{ja:'常楽会',                                                            zh:'常乐会',                                    en:'Feast of Eternal Bliss'},                                                                                                                                             time:'10:30', gather:'集合8:20（センター8:10）'},
+  {id:'e07', day:'18', wd:6, name:{ja:'立教90年 真如済摂会～ご霊廟荘厳祈誓～',                            zh:'立教90年 真如济摄会～灵庙庄严祈誓～',          en:'In Our 90th Year Shinnyo Saisho Ceremony: Heartfelt Vows for the Shinnyo Stupa Dedication'},                 time:'10:30', gather:'集合8:10（センター8:00）', restricted:true},
+  {id:'e08', day:'19', wd:0, name:{ja:'立教90年 真如済摂会～ご霊廟荘厳祈誓～（録画上映）',               zh:'立教90年 真如济摄会（录像播映）',               en:'In Our 90th Year Shinnyo Saisho Ceremony: Heartfelt Vows for the Shinnyo Stupa Dedication (Video Replay)'},  time:'10:30', gather:'集合8:10（センター8:00）', restricted:true},
+  {id:'e09', day:'20', wd:1, name:{ja:'笠法様法楽法要',                                                    zh:'笠法法楽法要',                              en:'Feast of Kasanori'},                                                                                                                                                  time:'10:30', gather:'集合8:20（センター8:10）'},
+  {id:'e10', day:'21', wd:2, name:{ja:'一如祈念',                                                          zh:'一如祈念',                                  en:'Prayer Gathering'},                                                                                                                                                   time:'10:30', gather:'集合8:20（センター8:10）'},
+  {id:'e11', day:'24', wd:5, name:{ja:'廻向法要',                                                          zh:'廻向法要',                                  en:'Merit Transfer Service'},                                                                                                                                             time:'10:30', gather:'集合8:20（センター8:10）'},
+  {id:'e12', day:'25', wd:6, name:{ja:'立教90年 One Heart お誕生セレモニー',                               zh:'立教90年 One Heart 诞辰典礼',                en:'In Our 90th Year: Birthday Celebration in One Heart'},                                                        time:'10:30', gather:'集合8:10（センター8:00）', restricted:true},
+  {id:'e13', day:'28', wd:2, name:{ja:'法前供',                                                            zh:'法前供',                                    en:'Homa Service'},                                                                                                                                                       time:'10:30', gather:'集合8:20（センター8:10）'},
+];
+
+// ═══════════════════════════════════════
+// I18N
+// ═══════════════════════════════════════
+const I18N = {
+  ja: {
+    title:'GLAD ご奉仕立願', period:'令和八年 四月',
+    nav:['立願','ご奉仕者','管理'],
+    secSelect:'ご奉仕をお選びください',
+    monthLabel:'令和八年 四月 ── 複数選択可',
+    selUnit:'件のご奉仕を選択中',
+    formSecTitle:'立願情報',
+    lblLast:'姓', lblFirst:'名',
+    lblEmail:'メールアドレス', lblRole:'役割',
+    lblLang:'対応言語（複数選択可）',
+    langOptions:[
+      {value:'日本語',label:'日本語'},{value:'英語',label:'英語'},
+      {value:'中国語',label:'中国語'},{value:'韓国語',label:'韓国語'},
+      {value:'広東語',label:'広東語'},{value:'ポルトガル語',label:'ポルトガル語'},
+      {value:'スペイン語',label:'スペイン語'},{value:'フランス語',label:'フランス語'},
+    ],
+    langOther:'その他', langOtherPh:'言語名をご記入ください',
+    rolePlaceholder:'── お選びください ──',
+    tmCountLabel:'前月までのご奉仕回数', tmEscortLabel:'付き添い', tmEscortPh:'お名前をご記入ください',
+    lblContact:'連絡担当（任意）', contactPh:'山田', contactHint:'姓のみご記入ください',
+    lblNotes:'ご伝言・ご質問（任意）', notesPh:'ご伝言がございましたらお書きください',
+    submitBtn:'立願を確定する', confirmTitle:'立願が完了しました',
+    confirmNote:'確認のご連絡をお送りいたします', resetBtn:'立願のやり直しへ',
+    secListTitle:'ご奉仕者一覧', secAdminTitle:'管理画面',
+    filterAll:'すべて', listEmpty:'まだ立願はございません',
+    admLblTotal:'総立願件数', admLblOther:'その他言語', admLblExt:'延べご奉仕数',
+    tblName:'御芳名', tblEmail:'連絡先', tblLang:'対応言語', tblRole:'役割', tblDate:'登録日時', tblDel:'取消',
+    confirmDel:'この立願を取り消しますか？', noBookings:'立願はございません',
+    toastSuffix:'件の立願が完了しました', honorific:' 様',
+    errSelect:'ご奉仕を一つ以上お選びください。', errName:'お名前をご入力ください。',
+    errEmail:'有効なメールアドレスをご入力ください。', errLang:'対応言語を一つ以上お選びください。',
+    errRole:'役割をお選びください。',
+    restricted:'※ GLADご奉仕経験者（2か月以内）のみ',
+    dlBtn:'⬇ Excel ダウンロード',
+    newConfirmTitle:'立願内容の確認', updateConfirmTitle:'立願内容の確認（更新）',
+    cancelBtn:'戻る',
+    wds:['日','月','火','水','木','金','土'],
+  },
+  zh: {
+    title:'GLAD 奉仕志愿', period:'令和八年 四月',
+    nav:['志愿','奉仕者','管理'],
+    secSelect:'请选择奉仕项目',
+    monthLabel:'令和八年 四月 ── 可多选',
+    selUnit:'件奉仕已选择',
+    formSecTitle:'志愿信息',
+    lblLast:'姓', lblFirst:'名',
+    lblEmail:'电子邮箱', lblRole:'角色',
+    lblLang:'对应语言（可多选）',
+    langOptions:[
+      {value:'日本語',label:'日语'},{value:'英語',label:'英语'},
+      {value:'中国語',label:'中文'},{value:'韓国語',label:'韩语'},
+      {value:'広東語',label:'粤语'},{value:'ポルトガル語',label:'葡萄牙语'},
+      {value:'スペイン語',label:'西班牙语'},{value:'フランス語',label:'法语'},
+    ],
+    langOther:'其他', langOtherPh:'请填写语言名称',
+    rolePlaceholder:'── 请选择 ──',
+    tmCountLabel:'上月为止的奉仕次数', tmEscortLabel:'陪同者', tmEscortPh:'请填写姓名',
+    lblContact:'联络负责人（选填）', contactPh:'山田', contactHint:'请只填写姓氏',
+    lblNotes:'留言 / 问题（选填）', notesPh:'如有留言请填写',
+    submitBtn:'确认志愿', confirmTitle:'志愿已完成',
+    confirmNote:'确认邮件将发送给您', resetBtn:'重新志愿',
+    secListTitle:'奉仕者名单', secAdminTitle:'管理页面',
+    filterAll:'全部', listEmpty:'暂无志愿',
+    admLblTotal:'总志愿数', admLblOther:'其他语言', admLblExt:'累计奉仕数',
+    tblName:'姓名', tblEmail:'联系方式', tblLang:'对应语言', tblRole:'角色', tblDate:'登记时间', tblDel:'取消',
+    confirmDel:'确认取消此志愿？', noBookings:'暂无志愿',
+    toastSuffix:'件志愿已完成', honorific:'',
+    errSelect:'请至少选择一个奉仕项目。', errName:'请填写姓名。',
+    errEmail:'请填写有效的电子邮箱。', errLang:'请至少选择一种语言。',
+    errRole:'请选择角色。',
+    restricted:'※ 仅限2个月内参与过GLAD奉仕者',
+    dlBtn:'⬇ 下载 Excel',
+    newConfirmTitle:'确认志愿内容', updateConfirmTitle:'确认志愿内容（更新）',
+    cancelBtn:'返回',
+    wds:['日','月','火','水','木','金','土'],
+  },
+  en: {
+    title:'GLAD Gohoshi Registration', period:'April, Reiwa 8',
+    nav:['Register','Volunteers','Admin'],
+    secSelect:'Select Service',
+    monthLabel:'April, Reiwa 8 — Multiple selection allowed',
+    selUnit:'service(s) selected',
+    formSecTitle:'Your Information',
+    lblLast:'Last name', lblFirst:'First name',
+    lblEmail:'Email address', lblRole:'Role',
+    lblLang:'Language(s) — multiple selection allowed',
+    langOptions:[
+      {value:'日本語',label:'Japanese'},{value:'英語',label:'English'},
+      {value:'中国語',label:'Chinese'},{value:'韓国語',label:'Korean'},
+      {value:'広東語',label:'Cantonese'},{value:'ポルトガル語',label:'Portuguese'},
+      {value:'スペイン語',label:'Spanish'},{value:'フランス語',label:'French'},
+    ],
+    langOther:'Other', langOtherPh:'Please specify language',
+    rolePlaceholder:'── Please select ──',
+    tmCountLabel:'Number of services completed before this month', tmEscortLabel:'Escort', tmEscortPh:'Please enter name',
+    lblContact:'Contact Person (optional)', contactPh:'Yamada', contactHint:'Last name only',
+    lblNotes:'Message / Questions (optional)', notesPh:'Please leave any message here',
+    submitBtn:'Confirm Registration', confirmTitle:'Registration Complete',
+    confirmNote:'A confirmation email will be sent', resetBtn:'Start over',
+    secListTitle:'Volunteer List', secAdminTitle:'Admin Dashboard',
+    filterAll:'All', listEmpty:'No registrations yet',
+    admLblTotal:'Total', admLblOther:'Other languages', admLblExt:'Total entries',
+    tblName:'Name', tblEmail:'Email', tblLang:'Language', tblRole:'Role', tblDate:'Registered', tblDel:'Cancel',
+    confirmDel:'Cancel this registration?', noBookings:'No registrations',
+    toastSuffix:'registration(s) confirmed', honorific:'',
+    errSelect:'Please select at least one service.', errName:'Please enter your name.',
+    errEmail:'Please enter a valid email address.', errLang:'Please select at least one language.',
+    errRole:'Please select a role.',
+    restricted:'※ Only for those who have served in GLAD within the past 2 months',
+    dlBtn:'⬇ Download Excel',
+    newConfirmTitle:'Confirm Registration', updateConfirmTitle:'Confirm Registration (Update)',
+    cancelBtn:'Back',
+    wds:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+  },
+};
+
+// ═══════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════
+const ROLE_ORDER  = ['センター','アシスタント','在日','日本人','TM(在日)','TM(日本人)'];
+const ROLE_PREFIX = {'センター':'C: ','アシスタント':'A: ','在日':'','日本人':'','TM(在日)':'','TM(日本人)':''};
+const TM_ROLES    = ['TM(在日)','TM(日本人)'];
+const LANG_ABBR   = {'日本語':'日','英語':'英','中国語':'中','韓国語':'韓','広東語':'広','ポルトガル語':'ポ','スペイン語':'ス','フランス語':'フ'};
+
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+let currentLang    = 'ja';
+let selected       = new Set();
+let bookings       = [];
+let listFilter     = 'all';
+let receptionOpen  = false;
+let isAdminAuthed  = false;
+let isSuperUser    = false;
+let pendingTab     = null;
+let currentLoginTab = 'pw';
+
+// ═══════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════
+const L = () => I18N[currentLang];
+const t = key => L()[key] || I18N.ja[key];
+
+function setEl(id, val, prop) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (prop === 'ph') el.placeholder = val;
+  else el.textContent = val;
+}
+
+function weekdayStr(ev) {
+  if (ev.wd == null) return '';
+  return L().wds[ev.wd];
+}
+
+function langTag(langStr) {
+  if (!langStr) return '';
+  const codes = langStr.split('・').map(l => LANG_ABBR[l] || '他').join('');
+  return codes ? ' [' + codes + ']' : '';
+}
+
+function sortByRole(list) {
+  return [...list].sort((a, b) => {
+    const ai = ROLE_ORDER.indexOf(a.role);
+    const bi = ROLE_ORDER.indexOf(b.role);
+    return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
+  });
+}
+
+function groupCountLabel(list) {
+  const ca = list.filter(b => b.role === 'センター' || b.role === 'アシスタント').length;
+  return `C+A: ${ca}名　全員: ${list.length}名`;
+}
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+function showErr(msg) {
+  const el = document.getElementById('errMsg');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+// ═══════════════════════════════════════
+// I18N APPLICATION
+// ═══════════════════════════════════════
+function applyI18n() {
+  const l = L();
+  document.title = l.title;
+  document.documentElement.lang = currentLang === 'en' ? 'en' : currentLang === 'zh' ? 'zh' : 'ja';
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.lang-btn[onclick="setLang('${currentLang}')"]`).classList.add('active');
+
+  ['hdr-title',l.title,'hdr-period',l.period,'nav-form',l.nav[0],'nav-list',l.nav[1],'nav-admin',l.nav[2],
+   'sec-select',l.secSelect,'month-label',l.monthLabel,'sel-unit',l.selUnit,'form-sec-title',l.formSecTitle,
+   'lbl-last',l.lblLast+' *','lbl-first',l.lblFirst+' *','lbl-email',l.lblEmail+' *',
+   'lbl-lang',l.lblLang,'lbl-role',l.lblRole+' *',
+   'lbl-tm-count',l.tmCountLabel,'lbl-tm-escort',l.tmEscortLabel,
+   'lbl-contact',l.lblContact,'contact-hint',l.contactHint,'lbl-notes',l.lblNotes,
+   'submit-btn',l.submitBtn,'confirm-title',l.confirmTitle,'confirm-note',l.confirmNote,
+   'reset-btn',l.resetBtn,'sec-list-title',l.secListTitle,'sec-admin-title',l.secAdminTitle,
+   'listEmpty',l.listEmpty,'adm-lbl-total',l.admLblTotal,'adm-lbl-other',l.admLblOther,
+   'adm-lbl-ext',l.admLblExt,'dl-btn',l.dlBtn,
+  ].reduce((_, v, i, arr) => i % 2 === 0 ? v : (setEl(arr[i-1], v), null), null);
+
+  setEl('tmEscort',  l.tmEscortPh, 'ph');
+  setEl('contact',   l.contactPh,  'ph');
+  setEl('notes',     l.notesPh,    'ph');
+  setEl('otherLang', l.langOtherPh,'ph');
+  document.querySelector('#role option[value=""]').textContent = l.rolePlaceholder;
+  document.getElementById('lastName').placeholder  = currentLang === 'en' ? 'Smith' : '山田';
+  document.getElementById('firstName').placeholder = currentLang === 'en' ? 'John'  : '花子';
+
+  // Rebuild language checkboxes
+  const box     = document.getElementById('langCheckboxes');
+  const checked = [...document.querySelectorAll('input[name="language"]:checked')].map(c => c.value);
+  box.innerHTML = '';
+  [...l.langOptions, {value:'その他', label:l.langOther}].forEach(opt => {
+    const lbl = document.createElement('label');
+    lbl.className = 'cb-item';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.name = 'language'; cb.value = opt.value;
+    if (checked.includes(opt.value)) cb.checked = true;
+    if (opt.value === 'その他') cb.onchange = () => onOtherLangToggle(cb);
+    lbl.appendChild(cb);
+    lbl.appendChild(document.createTextNode(' ' + opt.label));
+    box.appendChild(lbl);
+  });
+}
+
+function setLang(lang) {
+  currentLang = lang;
+  applyI18n();
+  renderEvents();
+  renderList();
+  renderAdmin();
+}
+
+// ═══════════════════════════════════════
+// TAB NAVIGATION
+// ═══════════════════════════════════════
+function switchTab(tab) {
+  if ((tab === 'list' || tab === 'admin') && !isAdminAuthed) {
+    pendingTab = tab;
+    showAdminOverlay();
+    return;
+  }
+  doSwitchTab(tab);
+}
+
+function doSwitchTab(tab) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+  ['form','list','admin'].forEach((name, i) => {
+    if (name === tab) document.querySelectorAll('.nav-item')[i].classList.add('active');
+  });
+  if (tab === 'list')  renderList();
+  if (tab === 'admin') { renderAdmin(); loadBccSettings(); }
+}
+
+// ═══════════════════════════════════════
+// EVENT CARD RENDERING
+// ═══════════════════════════════════════
+function isPastEvent(ev) {
+  const now   = new Date();
+  // MONTH_CODE = 'YYYY-MM' から年月を取得、日は ev.day
+  const parts = MONTH_CODE.split('-');
+  const evDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(ev.day));
+  // 今日の0時と比較（当日はグレーアウトしない）
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return evDate < today;
+}
+
+function renderEvents() {
+  const grid = document.getElementById('grid-main');
+  grid.innerHTML = '';
+  EVENTS.forEach(ev => {
+    const past     = isPastEvent(ev);
+    const wdStr    = weekdayStr(ev);
+    const wdClass  = ev.wd === 6 ? 'sat' : ev.wd === 0 ? 'sun' : '';
+    const isSel    = selected.has(ev.id) && !past;
+    const card     = document.createElement('div');
+    card.className = 'event-card' + (isSel ? ' selected' : '') + (past ? ' past' : '');
+    card.innerHTML = `
+      <div class="event-date-col">
+        <div class="event-date-day">${ev.day}</div>
+        <div class="event-date-wd ${wdClass}">${wdStr}</div>
+      </div>
+      <div class="event-body">
+        <div class="event-name">${ev.name[currentLang] || ev.name.ja}</div>
+        <div class="event-meta">${ev.time}
+          ${ev.gather     ? `<div style="font-size:0.63rem;color:var(--ink-faint);margin-top:2px;">${ev.gather}</div>` : ''}
+          ${ev.restricted ? `<div style="font-size:0.63rem;color:var(--gold-dark);margin-top:4px;letter-spacing:0.02em;">${t('restricted')}</div>` : ''}
+        </div>
+      </div>
+      <div class="event-right">
+        <div class="check-mark">
+          <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>`;
+    if (!past) card.addEventListener('click', () => toggleEvent(ev.id));
+    grid.appendChild(card);
+  });
+  const n = selected.size;
+  document.getElementById('selCount').textContent = n;
+  document.getElementById('selSummary').classList.toggle('hidden', n === 0);
+}
+
+function toggleEvent(id) {
+  const ev = EVENTS.find(e => e.id === id);
+  if (ev && isPastEvent(ev)) return;
+  selected.has(id) ? selected.delete(id) : selected.add(id);
+  renderEvents();
+}
+
+// ═══════════════════════════════════════
+// FORM INTERACTIONS
+// ═══════════════════════════════════════
+function onRoleChange(sel) {
+  const isTm = TM_ROLES.includes(sel.value);
+  document.getElementById('tmCountWrap').style.display  = isTm ? 'block' : 'none';
+  document.getElementById('tmEscortWrap').style.display = sel.value === 'TM(在日)' ? 'block' : 'none';
+  if (!isTm)                document.getElementById('tmCount').value  = '0';
+  if (sel.value !== 'TM(在日)') document.getElementById('tmEscort').value = '';
+}
+
+function onOtherLangToggle(cb) {
+  document.getElementById('otherLangWrap').style.display = cb.checked ? 'block' : 'none';
+  if (!cb.checked) document.getElementById('otherLang').value = '';
+}
+
+// ═══════════════════════════════════════
+// FORM SUBMIT
+// ═══════════════════════════════════════
+let _pendingBooking = null; // 確認モーダル承認待ちデータ
+
+function submitForm() {
+  const l = L();
+  if (selected.size === 0) { showErr(l.errSelect); return; }
+
+  const last  = document.getElementById('lastName').value.trim();
+  const first = document.getElementById('firstName').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const role  = document.getElementById('role').value;
+
+  if (!last || !first)               { showErr(l.errName);  return; }
+  if (!email || !email.includes('@')) { showErr(l.errEmail); return; }
+  if (!role)                         { showErr(l.errRole);  return; }
+
+  const langChecked = [...document.querySelectorAll('input[name="language"]:checked')].map(c => {
+    if (c.value === 'その他') {
+      const other = document.getElementById('otherLang').value.trim();
+      return other ? t('langOther') + '（' + other + '）' : t('langOther');
+    }
+    return c.value;
+  });
+  if (langChecked.length === 0) { showErr(l.errLang); return; }
+
+  document.getElementById('errMsg').style.display = 'none';
+
+  const b = {
+    id:       Date.now(),
+    name:     currentLang === 'en' ? first + ' ' + last : last + ' ' + first,
+    email,
+    language: langChecked.join('・'),
+    role,
+    tmPrev:   TM_ROLES.includes(role) ? parseInt(document.getElementById('tmCount').value || '0', 10) : null,
+    tmEscort: role === 'TM(在日)' ? document.getElementById('tmEscort').value.trim() : '',
+    contact:  document.getElementById('contact').value.trim(),
+    notes:    document.getElementById('notes').value.trim(),
+    eventIds: [...selected],
+    month:    MONTH_CODE,
+    at:       new Date().toLocaleString('ja-JP'),
+  };
+
+  const prev     = bookings.find(bk => bk.email === email);
+  const isUpdate = !!prev;
+  const prevIds  = prev ? (prev.eventIds || []) : [];
+
+  // 過去の法要は前回の登録内容を自動的に引き継ぐ
+  const pastPrevIds = prevIds.filter(id => isPastEvent(EVENTS.find(e => e.id === id)));
+  pastPrevIds.forEach(id => { if (!b.eventIds.includes(id)) b.eventIds.push(id); });
+
+  // 追加・キャンセルは未来の法要のみで判定
+  b.addedIds     = b.eventIds.filter(id => !prevIds.includes(id) && !isPastEvent(EVENTS.find(e => e.id === id)));
+  b.cancelledIds = prevIds.filter(id => !b.eventIds.includes(id) && !isPastEvent(EVENTS.find(e => e.id === id)));
+  b.prevEventIds = prevIds;
+  b.isUpdate     = isUpdate;
+
+  // 確認モーダルを表示
+  _pendingBooking = b;
+  showConfirmModal(b, isUpdate);
+}
+
+function showConfirmModal(b, isUpdate) {
+  const l = L();
+
+  // ヘッダー
+  document.getElementById('cmod-title').textContent = isUpdate ? (l.updateConfirmTitle || '立願内容の確認（更新）') : (l.newConfirmTitle || '立願内容の確認');
+  document.getElementById('cmod-sub').textContent   = b.name + (l.honorific || '');
+
+  // ご奉仕リスト（完了・追加・通常）
+  const activeIds    = b.eventIds.filter(id => !b.cancelledIds.includes(id));
+  const svcContainer = document.getElementById('cmod-services');
+  svcContainer.innerHTML = '';
+  activeIds.forEach(id => {
+    const ev      = EVENTS.find(e => e.id === id);
+    if (!ev) return;
+    const isPast  = isPastEvent(ev);
+    const isAdded = b.addedIds.includes(id);
+    const type    = isPast ? 'past' : isAdded ? 'added' : 'normal';
+    const label   = isPast ? '完了' : isAdded ? '追加' : '◇';
+    const name    = ev.day + (weekdayStr(ev) ? '（' + weekdayStr(ev) + '）' : '') + ' ' + (ev.name[currentLang] || ev.name.ja);
+    svcContainer.innerHTML += `<div class="cmod-ev">
+      <span class="cmod-badge ${type}">${label}</span>
+      <span class="cmod-ev-name ${type}">${name}</span>
+    </div>`;
+  });
+  document.getElementById('cmod-services-label').textContent = l.secSelect || 'ご奉仕';
+
+  // キャンセルセクション
+  const canSec = document.getElementById('cmod-cancelled-section');
+  if (b.cancelledIds.length > 0) {
+    canSec.style.display = 'block';
+    document.getElementById('cmod-cancelled-label').textContent = 'キャンセル';
+    const canContainer = document.getElementById('cmod-cancelled');
+    canContainer.innerHTML = '';
+    b.cancelledIds.forEach(id => {
+      const ev   = EVENTS.find(e => e.id === id);
+      if (!ev) return;
+      const name = ev.day + (weekdayStr(ev) ? '（' + weekdayStr(ev) + '）' : '') + ' ' + (ev.name[currentLang] || ev.name.ja);
+      canContainer.innerHTML += `<div class="cmod-ev">
+        <span class="cmod-badge cancelled">キャンセル</span>
+        <span class="cmod-ev-name cancelled">${name}</span>
+      </div>`;
+    });
+  } else {
+    canSec.style.display = 'none';
+  }
+
+  // 立願情報
+  document.getElementById('cmod-info-label').textContent = l.formSecTitle || '立願情報';
+  const infoRows = [
+    [l.lblRole,    b.role],
+    [l.lblLang,    b.language],
+    ...(TM_ROLES.includes(b.role) && b.tmPrev != null ? [[l.tmCountLabel, `${b.tmPrev + 1}回目`]] : []),
+    ...(b.role === 'TM(在日)' && b.tmEscort ? [[l.tmEscortLabel, b.tmEscort]] : []),
+    ...(b.contact ? [[l.lblContact, b.contact]] : []),
+    ...(b.notes   ? [[l.lblNotes,   b.notes]]   : []),
+  ];
+  document.getElementById('cmod-info').innerHTML = infoRows.map(([lbl, val]) =>
+    `<div class="cmod-row"><span class="cmod-row-label">${lbl}</span><span class="cmod-row-val">${val}</span></div>`
+  ).join('');
+
+  // ボタン
+  document.getElementById('cmod-btn-back').textContent = l.cancelBtn || '戻る';
+  document.getElementById('cmod-btn-ok').textContent   = l.submitBtn || '立願を確定する';
+
+  document.getElementById('confirmModal').classList.add('open');
+}
+
+function closeConfirmModal() {
+  document.getElementById('confirmModal').classList.remove('open');
+  _pendingBooking = null;
+}
+
+function submitConfirmed() {
+  const b = _pendingBooking;
+  if (!b) return;
+  _pendingBooking = null;
+  document.getElementById('confirmModal').classList.remove('open');
+
+  const l        = L();
+  const isUpdate = b.isUpdate;
+
+  const evLines = b.eventIds.map(id => {
+    const ev     = EVENTS.find(e => e.id === id);
+    const isPast = isPastEvent(ev);
+    const prefix = isPast ? '[完了] ' : (isUpdate && b.addedIds.includes(id) ? '[追加] ' : '');
+    return prefix + ev.day + (weekdayStr(ev) ? '（' + weekdayStr(ev) + '）' : '') + ' ' + (ev.name[currentLang] || ev.name.ja);
+  });
+
+  bookings = bookings.filter(bk => bk.email !== b.email);
+  bookings.push(b);
+
+  saveToDb(b, evLines, isUpdate);
+  sendConfirmEmail(b, evLines, isUpdate);
+
+  // BCC通知（追加・キャンセルが直近日数以内にある場合）
+  if ((b.addedIds || []).length > 0 || (b.cancelledIds || []).length > 0) {
+    getBccTarget().then(bcc => {
+      if (bcc && needsBccNotification(b, bcc.days)) {
+        sendBccEmail(b, evLines, isUpdate, bcc.email);
+      }
+    });
+  }
+
+  document.getElementById('formWrap').style.display = 'none';
+  document.getElementById('confirmBlock').classList.add('vis');
+  document.getElementById('confirmName').textContent = b.name + (l.honorific || '');
+  document.getElementById('confirmEvents').innerHTML = evLines.map(ln => '<div class="confirm-event-item">' + ln + '</div>').join('');
+  showToast(b.name + (l.honorific || '') + '  ' + b.eventIds.length + ' ' + l.toastSuffix);
+  renderEvents();
+}
+
+function resetForm() {
+  ['lastName','firstName','email','contact','notes'].forEach(id => document.getElementById(id).value = '');
+  document.querySelectorAll('input[name="language"]').forEach(c => c.checked = false);
+  document.getElementById('otherLangWrap').style.display = 'none';
+  document.getElementById('otherLang').value = '';
+  document.getElementById('role').value = '';
+  document.getElementById('tmCountWrap').style.display  = 'none';
+  document.getElementById('tmEscortWrap').style.display = 'none';
+  document.getElementById('tmCount').value  = '0';
+  document.getElementById('tmEscort').value = '';
+  document.getElementById('errMsg').style.display = 'none';
+  selected = new Set();
+  document.getElementById('formWrap').style.display = 'block';
+  document.getElementById('confirmBlock').classList.remove('vis');
+  renderEvents();
+}
+
+// ═══════════════════════════════════════
+// VOLUNTEER LIST RENDERING
+// ═══════════════════════════════════════
+function buildAttItem(b, idx, evIdx, evId) {
+  let name = (ROLE_PREFIX[b.role] || '') + b.name + langTag(b.language);
+  if (TM_ROLES.includes(b.role) && b.tmPrev != null && evIdx != null) {
+    const count = b.tmPrev + evIdx + 1;
+    name += b.role === 'TM(在日)' && b.tmEscort
+      ? ` (TM${count}回目、付き添い:${b.tmEscort})`
+      : ` (TM${count}回目)`;
+  } else if (b.role === 'TM(在日)' && b.tmEscort) {
+    name += ` (付き添い:${b.tmEscort})`;
+  }
+
+  const ev          = evId ? EVENTS.find(e => e.id === evId) : null;
+  const isPast      = ev ? isPastEvent(ev) : false;
+  const isAdded     = evId && b.status === '更新' && (b.addedIds || []).includes(evId);
+  const isCancelled = evId && (b.cancelledEventIds || []).includes(evId);
+
+  let nameStyle = '', badge = '';
+  if (isCancelled) {
+    nameStyle = 'color:var(--danger);text-decoration:line-through;';
+    badge = '<span style="font-size:0.62rem;color:var(--danger);margin-left:4px;">✕キャンセル</span>';
+  } else if (isAdded) {
+    nameStyle = 'color:var(--added);';
+    badge = '<span style="font-size:0.62rem;color:var(--added);margin-left:4px;">＋追加</span>';
+  } else if (isPast) {
+    nameStyle = 'color:var(--ink-faint);';
+    badge = '<span style="font-size:0.62rem;color:var(--ink-faint);margin-left:4px;">✓完了</span>';
+  }
+
+  const el = document.createElement('div');
+  el.className = 'attendee-item';
+  el.innerHTML = `
+    <div class="att-num">${isCancelled ? '－' : idx + 1}</div>
+    <div class="att-avatar" style="${isCancelled ? 'opacity:0.4;' : isPast ? 'opacity:0.5;' : ''}">${(b.name || '').slice(0, 1)}</div>
+    <div class="att-info">
+      <div class="att-name" style="${nameStyle}">${name}${badge}</div>
+      ${b.notes ? `<div class="att-sub">💬 ${b.notes}</div>` : ''}
+    </div>`;
+  return el;
+}
+
+function renderEventGroup(ev, wrap) {
+  const active    = sortByRole(bookings.filter(b => b.eventIds && b.eventIds.includes(ev.id)));
+  const cancelled = bookings.filter(b => (b.cancelledEventIds || []).includes(ev.id));
+  if (!active.length && !cancelled.length) return;
+
+  const g = document.createElement('div');
+  g.className = 'att-group';
+  g.innerHTML = `<div class="att-group-label">${ev.day}${weekdayStr(ev) ? '（' + weekdayStr(ev) + '）' : ''} ${ev.name[currentLang] || ev.name.ja} — ${groupCountLabel(active)}</div>`;
+
+  let idx = 0;
+  active.forEach(b => {
+    b.addedIds = b.status === '更新' ? b.eventIds.filter(id => !(b.prevEventIds || []).includes(id)) : [];
+    g.appendChild(buildAttItem(b, idx++, b.eventIds.indexOf(ev.id), ev.id));
+  });
+  cancelled.forEach(b => g.appendChild(buildAttItem(b, idx++, 0, ev.id)));
+  wrap.appendChild(g);
+}
+
+function renderList() {
+  const l = L();
+  const filterDiv = document.getElementById('listFilter');
+  filterDiv.innerHTML =
+    `<button class="filter-btn${listFilter === 'all' ? ' active' : ''}" onclick="setFilter('all')">${l.filterAll}</button>` +
+    EVENTS.map(ev =>
+      `<button class="filter-btn${listFilter === ev.id ? ' active' : ''}" onclick="setFilter('${ev.id}')">${ev.day}日 ${ev.name[currentLang] || ev.name.ja}</button>`
+    ).join('');
+
+  const wrap  = document.getElementById('attList');
+  const empty = document.getElementById('listEmpty');
+  wrap.innerHTML = '';
+
+  if (!bookings.length) { empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  if (listFilter === 'all') {
+    EVENTS.forEach(ev => renderEventGroup(ev, wrap));
+    const legacy = bookings.filter(b => !b.eventIds || !b.eventIds.length);
+    if (legacy.length) {
+      const g = document.createElement('div');
+      g.className = 'att-group';
+      g.innerHTML = `<div class="att-group-label">その他 — ${legacy.length}名</div>`;
+      legacy.forEach((b, i) => g.appendChild(buildAttItem(b, i)));
+      wrap.appendChild(g);
+    }
+  } else {
+    const active    = sortByRole(bookings.filter(b => b.eventIds && b.eventIds.includes(listFilter)));
+    const cancelled = bookings.filter(b => (b.cancelledEventIds || []).includes(listFilter));
+    if (!active.length && !cancelled.length) { empty.style.display = 'block'; return; }
+
+    const countDiv = document.createElement('div');
+    countDiv.style.cssText = 'font-size:0.72rem;color:var(--ink-mid);margin-bottom:10px;letter-spacing:0.06em;';
+    countDiv.textContent = groupCountLabel(active);
+    wrap.appendChild(countDiv);
+
+    let idx = 0;
+    active.forEach(b => {
+      b.addedIds = b.status === '更新' ? b.eventIds.filter(id => !(b.prevEventIds || []).includes(id)) : [];
+      wrap.appendChild(buildAttItem(b, idx++, b.eventIds.indexOf(listFilter), listFilter));
+    });
+    cancelled.forEach(b => wrap.appendChild(buildAttItem(b, idx++, 0, listFilter)));
+  }
+}
+
+function setFilter(f) { listFilter = f; renderList(); }
+
+// ═══════════════════════════════════════
+// ADMIN RENDERING
+// ═══════════════════════════════════════
+function renderAdmin() {
+  const l = L();
+  const ext = bookings.reduce((s, b) => s + ((b.events || '').split(' / ').filter(e => e.trim()).length || 1), 0);
+  setEl('admTotal', bookings.length);
+  setEl('admJa',    bookings.filter(b => b.language === '日本語').length);
+  setEl('admOther', bookings.filter(b => b.language && b.language !== '日本語').length);
+  setEl('admExt',   ext);
+
+  const sec = document.getElementById('admSections');
+  sec.innerHTML = '';
+  if (!bookings.length) {
+    const el = document.createElement('div');
+    el.className = 'empty';
+    el.textContent = l.noBookings;
+    sec.appendChild(el);
+    return;
+  }
+  const rows = bookings.map((b, i) => {
+    const evCell = (b.events || '─').split(' / ').map(e => `<div style="padding:1px 0">${e}</div>`).join('');
+    const tmInfo = b.tmPrev != null
+      ? `<div>前月: ${b.tmPrev}回</div>${b.tmEscort ? `<div>付き添い: ${b.tmEscort}</div>` : ''}`
+      : '─';
+    return `<tr>
+      <td style="color:var(--ink-faint);vertical-align:top">${i+1}</td>
+      <td style="vertical-align:top;white-space:nowrap">${b.name}</td>
+      <td style="color:var(--ink-mid);font-size:0.68rem;vertical-align:top">${b.email}</td>
+      <td style="vertical-align:top;white-space:nowrap">${b.role || '─'}</td>
+      <td style="vertical-align:top">${b.language || '─'}</td>
+      <td style="font-size:0.68rem;color:var(--ink-mid);vertical-align:top">${evCell}</td>
+      <td style="font-size:0.68rem;color:var(--ink-mid);vertical-align:top">${tmInfo}</td>
+      <td style="vertical-align:top;white-space:nowrap">${b.contact || '─'}</td>
+      <td style="font-size:0.68rem;color:var(--ink-mid);vertical-align:top">${b.notes || '─'}</td>
+      <td style="color:var(--ink-faint);font-size:0.68rem;vertical-align:top;white-space:nowrap">${b.at}</td>
+      <td style="vertical-align:top"><button class="del-btn" onclick="delBooking('${b.email}')">${l.tblDel}</button></td>
+    </tr>`;
+  }).join('');
+  const tw = document.createElement('div');
+  tw.className = 'tbl-wrap';
+  tw.innerHTML = `<table><thead><tr>
+    <th>#</th><th>${l.tblName}</th><th>${l.tblEmail}</th>
+    <th>${l.tblRole}</th><th>${l.tblLang}</th><th>ご奉仕</th>
+    <th>TM情報</th><th>連絡担当</th><th>ご伝言</th>
+    <th>${l.tblDate}</th><th></th>
+  </tr></thead><tbody>${rows}</tbody></table>`;
+  sec.appendChild(tw);
+}
+
+function delBooking(email) {
+  if (!confirm(L().confirmDel)) return;
+  const headers = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
+  fetch(`${SUPABASE_URL}/rest/v1/reservations?email=eq.${encodeURIComponent(email)}&month=eq.${MONTH_CODE}`, { method:'DELETE', headers })
+    .then(() => {
+      bookings = bookings.filter(b => b.email !== email);
+      renderAdmin();
+      renderList();
+    })
+    .catch(err => console.warn('Delete error:', err));
+}
+
+// ═══════════════════════════════════════
+// EXCEL DOWNLOAD
+// ═══════════════════════════════════════
+function downloadExcel() {
+  if (!bookings.length) { alert('立願データがありません'); return; }
+
+  const wb       = XLSX.utils.book_new();
+  const rows     = [];
+  const merges   = [];
+  const groupRows = [];
+
+  function langShort(s) {
+    return (s || '').split('・').map(l => LANG_ABBR[l] || '他').join('');
+  }
+  function roleShort(b, evId) {
+    if (b.role === 'センター' || b.role === 'アシスタント') return b.role;
+    if (b.role === '在日' || b.role === '日本人') return '';
+    if (TM_ROLES.includes(b.role) && b.tmPrev != null) {
+      const idx = Math.max(0, (b.eventIds || []).indexOf(evId));
+      return `TM${b.tmPrev + idx + 1}回目`;
+    }
+    return b.role || '';
+  }
+  function notesCell(b) {
+    const p = [];
+    if (b.role === 'TM(在日)' && b.tmEscort) p.push('付き添い:' + b.tmEscort);
+    if (b.notes) p.push(b.notes);
+    return p.join('、');
+  }
+
+  rows.push({ cells:['法要','人数','役割','氏名','言語','連絡担当','備考'], isHeader:true });
+
+  EVENTS.forEach(ev => {
+    const active    = sortByRole(bookings.filter(b => b.eventIds && b.eventIds.includes(ev.id)));
+    const cancelled = bookings.filter(b => (b.cancelledEventIds || []).includes(ev.id));
+    const label     = `${ev.day}（${weekdayStr(ev)}） ${ev.name[currentLang] || ev.name.ja}`;
+    const ca        = active.filter(b => b.role === 'センター' || b.role === 'アシスタント').length;
+    const count     = `C+A: ${ca} / 全: ${active.length}`;
+    const groupStart = rows.length;
+    groupRows.push(groupStart);
+
+    if (!active.length && !cancelled.length) {
+      rows.push({ cells:[label, count, '','','','',''] });
+      return;
+    }
+    active.forEach((b, i) => {
+      const isPast   = isPastEvent(ev);
+      const isAdded  = !isPast && b.status === '更新' && (b.prevEventIds || []).length > 0 && !(b.prevEventIds || []).includes(ev.id);
+      rows.push({ cells:[i === 0 ? label : '', i === 0 ? count : '', roleShort(b, ev.id), b.name, langShort(b.language), b.contact || '', notesCell(b)], isAdded, isPast });
+    });
+    if (active.length > 1) {
+      merges.push({ s:{r:groupStart,c:0}, e:{r:groupStart+active.length-1,c:0} });
+      merges.push({ s:{r:groupStart,c:1}, e:{r:groupStart+active.length-1,c:1} });
+    }
+    cancelled.forEach(b => rows.push({ cells:['','', roleShort(b, ev.id), b.name, langShort(b.language), b.contact || '', notesCell(b)], isCancelled:true }));
+  });
+
+  const ws  = XLSX.utils.aoa_to_sheet(rows.map(r => r.cells));
+  ws['!merges']     = merges;
+  ws['!sheetViews'] = [{ state:'frozen', ySplit:1, topLeftCell:'A2' }];
+  ws['!cols']       = [{wch:32},{wch:14},{wch:12},{wch:14},{wch:10},{wch:10},{wch:24}];
+
+  const thin  = { style:'thin',   color:{rgb:'AAAAAA'} };
+  const thick = { style:'medium', color:{rgb:'555555'} };
+  const N     = 7;
+  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+  for (let R = range.s.r; R <= range.e.r; R++) {
+    const meta = rows[R] || {};
+    for (let C = 0; C < N; C++) {
+      const addr = XLSX.utils.encode_cell({r:R, c:C});
+      if (!ws[addr]) ws[addr] = {t:'s',v:''};
+      ws[addr].s = {
+        font: { name:'Meiryo UI', sz:10, bold:!!meta.isHeader,
+          color:{ rgb: meta.isCancelled ? '8B3A3A' : meta.isAdded ? '2A5EA8' : meta.isPast ? 'A89F96' : '2A2520' },
+          strike: !!meta.isCancelled },
+        alignment: { vertical:'top', wrapText:true },
+        fill: meta.isHeader ? { fgColor:{rgb:'F0EBE3'}, patternType:'solid' } : { patternType:'none' },
+        border: {
+          top:    (meta.isHeader || groupRows.includes(R)) ? thick : thin,
+          bottom: R === rows.length - 1 ? thick : thin,
+          left:   C === 0     ? thick : thin,
+          right:  C === N - 1 ? thick : thin,
+        },
+      };
+    }
+  }
+  XLSX.utils.book_append_sheet(wb, ws, 'ご奉仕者一覧');
+  const d = new Date();
+  XLSX.writeFile(wb, `GLAD_ogen_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.xlsx`);
+}
+
+// ═══════════════════════════════════════
+// ADMIN AUTH
+// ═══════════════════════════════════════
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+async function getStoredHash() {
+  const res  = await fetch(`${SUPABASE_URL}/rest/v1/settings?key=eq.${encodeURIComponent(ADMIN_PW_SETTING)}&select=value`, {
+    headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY },
+  });
+  const rows = await res.json();
+  if (Array.isArray(rows) && rows.length) return rows[0].value;
+  const defaultHash = await sha256('admin1234');
+  await fetch(`${SUPABASE_URL}/rest/v1/settings`, {
+    method: 'POST',
+    headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json', Prefer:'resolution=merge-duplicates' },
+    body: JSON.stringify({ key: ADMIN_PW_SETTING, value: defaultHash }),
+  });
+  return defaultHash;
+}
+
+function switchLoginTab(tab) {
+  currentLoginTab = tab;
+  document.getElementById('login-tab-pw').style.display = tab === 'pw' ? 'block' : 'none';
+  document.getElementById('login-tab-su').style.display = tab === 'su' ? 'block' : 'none';
+  const gold = tab === 'pw';
+  document.getElementById('tab-pw-btn').style.cssText = `border-bottom-color:${gold?'var(--gold)':'transparent'};color:${gold?'var(--gold-dark)':'var(--ink-faint)'}`;
+  document.getElementById('tab-su-btn').style.cssText = `border-bottom-color:${!gold?'var(--gold)':'transparent'};color:${!gold?'var(--gold-dark)':'var(--ink-faint)'}`;
+  document.getElementById('overlay-err').textContent = '';
+}
+
+function showAdminOverlay() {
+  switchLoginTab('pw');
+  ['adminPwInput','adminEmailInput','adminSuPwInput'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('overlay-err').textContent = '';
+  document.getElementById('adminOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('adminPwInput').focus(), 50);
+}
+
+async function confirmAdminLogin() {
+  const btn = document.getElementById('overlay-ok');
+  const err = document.getElementById('overlay-err');
+  btn.textContent = '...';
+  err.textContent = '';
+  try {
+    if (currentLoginTab === 'pw') {
+      const hash   = await sha256(document.getElementById('adminPwInput').value);
+      const stored = await getStoredHash();
+      if (hash === stored) {
+        isAdminAuthed = true; isSuperUser = false;
+        document.getElementById('adminOverlay').classList.remove('open');
+        document.getElementById('admin-user-label').textContent = '管理者';
+        document.getElementById('pw-change-section').style.display = 'none';
+        if (pendingTab) { doSwitchTab(pendingTab); pendingTab = null; }
+      } else {
+        err.textContent = 'パスワードが正しくありません';
+        document.getElementById('adminPwInput').value = '';
+        document.getElementById('adminPwInput').focus();
+      }
+    } else {
+      const email    = document.getElementById('adminEmailInput').value.trim();
+      const password = document.getElementById('adminSuPwInput').value;
+      const res      = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+        method:'POST',
+        headers:{ apikey: SUPABASE_KEY, 'Content-Type':'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (res.ok && data.access_token && email === SUPER_USER_EMAIL) {
+        isAdminAuthed = true; isSuperUser = true;
+        document.getElementById('adminOverlay').classList.remove('open');
+        document.getElementById('admin-user-label').textContent = email;
+        document.getElementById('pw-change-section').style.display = 'block';
+        if (pendingTab) { doSwitchTab(pendingTab); pendingTab = null; }
+      } else {
+        err.textContent = 'ログインできませんでした';
+        document.getElementById('adminSuPwInput').value = '';
+      }
+    }
+  } catch(e) {
+    err.textContent = 'エラーが発生しました';
+  }
+  btn.textContent = '確認';
+}
+
+function cancelAdminLogin() {
+  document.getElementById('adminOverlay').classList.remove('open');
+  pendingTab = null;
+}
+
+function adminLogout() {
+  isAdminAuthed = false; isSuperUser = false;
+  document.getElementById('admin-user-label').textContent = '';
+  document.getElementById('pw-change-section').style.display = 'none';
+  doSwitchTab('form');
+  showToast('ログアウトしました');
+}
+
+async function changeAdminPassword() {
+  const newPw   = document.getElementById('new-pw-input').value;
+  const confirm = document.getElementById('new-pw-confirm').value;
+  const errEl   = document.getElementById('pw-change-err');
+  errEl.textContent = '';
+  if (!newPw || newPw.length < 6) { errEl.textContent = '6文字以上で入力してください'; return; }
+  if (newPw !== confirm)          { errEl.textContent = 'パスワードが一致しません';    return; }
+  const hash = await sha256(newPw);
+  const res  = await fetch(`${SUPABASE_URL}/rest/v1/settings`, {
+    method:'POST',
+    headers:{ apikey: SUPABASE_KEY, Authorization:'Bearer '+SUPABASE_KEY, 'Content-Type':'application/json', Prefer:'resolution=merge-duplicates' },
+    body: JSON.stringify({ key: ADMIN_PW_SETTING, value: hash }),
+  });
+  if (res.ok) {
+    document.getElementById('new-pw-input').value = '';
+    document.getElementById('new-pw-confirm').value = '';
+    showToast('✓ パスワードを変更しました');
+  } else {
+    errEl.textContent = '保存に失敗しました';
+  }
+}
+
+// ═══════════════════════════════════════
+// RECEPTION ON/OFF
+// ═══════════════════════════════════════
+function updateReceptionUI(isOpen) {
+  receptionOpen = isOpen;
+  const btn      = document.getElementById('reception-toggle-btn');
+  const lbl      = document.getElementById('reception-status-label');
+  const formWrap = document.getElementById('formWrap');
+  const closedMsg = document.getElementById('reception-closed-msg');
+  if (isOpen) {
+    btn.textContent = '受付中 → 閉じる';
+    btn.style.background = 'var(--danger)';
+    btn.style.color = '#fff';
+    lbl.textContent = '現在受付中です';
+    if (formWrap)   formWrap.style.display   = 'block';
+    if (closedMsg)  closedMsg.style.display  = 'none';
+  } else {
+    btn.textContent = '受付停止中 → 開く';
+    btn.style.background = 'var(--ink)';
+    btn.style.color = 'rgba(255,255,255,0.85)';
+    lbl.textContent = '現在受付を停止しています';
+    if (formWrap)   formWrap.style.display   = 'none';
+    if (closedMsg)  closedMsg.style.display  = 'block';
+  }
+}
+
+function loadReceptionStatus() {
+  fetch(`${SUPABASE_URL}/rest/v1/settings?key=eq.${encodeURIComponent(RECEPTION_SETTING)}&select=value`, {
+    headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY },
+  })
+  .then(r => r.json())
+  .then(rows => updateReceptionUI(Array.isArray(rows) && rows.length > 0 && rows[0].value === 'open'))
+  .catch(() => updateReceptionUI(false));
+}
+
+function toggleReception() {
+  const newState = !receptionOpen;
+  const headers  = { apikey: SUPABASE_KEY, Authorization:'Bearer '+SUPABASE_KEY, 'Content-Type':'application/json', Prefer:'resolution=merge-duplicates' };
+  fetch(`${SUPABASE_URL}/rest/v1/settings`, {
+    method:'POST', headers,
+    body: JSON.stringify({ key: RECEPTION_SETTING, value: newState ? 'open' : 'closed' }),
+  })
+  .then(res => {
+    if (res.ok || res.status === 409) {
+      updateReceptionUI(newState);
+      showToast(newState ? '✓ 受付を開始しました' : '✓ 受付を停止しました');
+    }
+  })
+  .catch(() => showToast('エラーが発生しました'));
+}
+
+
+// ═══════════════════════════════════════
+// BCC NOTIFICATION SETTINGS
+// ═══════════════════════════════════════
+async function loadBccSettings() {
+  try {
+    const keys = [BCC_EMAIL_SETTING, BCC_DAYS_SETTING];
+    const res  = await fetch(
+      `${SUPABASE_URL}/rest/v1/settings?key=in.(${keys.map(k => `"${k}"`).join(',')})&select=key,value`,
+      { headers: dbHeaders() }
+    );
+    const rows = await res.json();
+    if (!Array.isArray(rows)) return;
+    rows.forEach(r => {
+      if (r.key === BCC_EMAIL_SETTING) {
+        const el = document.getElementById('bcc-email-input');
+        if (el) el.value = r.value || '';
+      }
+      if (r.key === BCC_DAYS_SETTING) {
+        const el = document.getElementById('bcc-days-input');
+        if (el) el.value = r.value || '3';
+      }
+    });
+  } catch(e) { console.warn('BCC settings load error:', e); }
+}
+
+async function saveBccSettings() {
+  const email = (document.getElementById('bcc-email-input').value || '').trim();
+  const days  = document.getElementById('bcc-days-input').value || '3';
+  const msg   = document.getElementById('bcc-save-msg');
+  const h     = dbHeaders({ 'Content-Type':'application/json', Prefer:'resolution=merge-duplicates' });
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/settings`, { method:'POST', headers:h, body:JSON.stringify({ key:BCC_EMAIL_SETTING, value:email }) });
+    await fetch(`${SUPABASE_URL}/rest/v1/settings`, { method:'POST', headers:h, body:JSON.stringify({ key:BCC_DAYS_SETTING,  value:days  }) });
+    msg.textContent = '✓ 保存しました';
+    setTimeout(() => { msg.textContent = ''; }, 3000);
+  } catch(e) {
+    msg.style.color = 'var(--danger)';
+    msg.textContent = '保存に失敗しました';
+  }
+}
+
+async function getBccTarget() {
+  // BCC設定をDBから取得して返す {email, days}
+  try {
+    const keys = [BCC_EMAIL_SETTING, BCC_DAYS_SETTING];
+    const res  = await fetch(
+      `${SUPABASE_URL}/rest/v1/settings?key=in.(${keys.map(k => `"${k}"`).join(',')})&select=key,value`,
+      { headers: dbHeaders() }
+    );
+    const rows = await res.json();
+    if (!Array.isArray(rows)) return null;
+    const emailRow = rows.find(r => r.key === BCC_EMAIL_SETTING);
+    const daysRow  = rows.find(r => r.key === BCC_DAYS_SETTING);
+    const email    = emailRow ? emailRow.value : '';
+    const days     = daysRow  ? parseInt(daysRow.value, 10) : 3;
+    return email ? { email, days } : null;
+  } catch(e) { return null; }
+}
+
+function needsBccNotification(b, bccDays) {
+  // 追加・キャンセルされた法要のうち、今日〜bccDays日後以内のものがあるかチェック
+  const today    = new Date();
+  today.setHours(0,0,0,0);
+  const parts    = MONTH_CODE.split('-');
+  const deadline = new Date(today.getTime() + bccDays * 86400000);
+  const changedIds = [...(b.addedIds || []), ...(b.cancelledIds || [])];
+  return changedIds.some(id => {
+    const ev = EVENTS.find(e => e.id === id);
+    if (!ev) return false;
+    const evDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(ev.day));
+    return evDate >= today && evDate <= deadline;
+  });
+}
+
+function sendBccEmail(b, evLines, isUpdate, bccEmailStr) {
+  // カンマ区切りで複数アドレスに対応
+  const addresses = bccEmailStr.split(',').map(e => e.trim()).filter(e => e.includes('@'));
+  if (!addresses.length) return;
+
+  const changedEvs = [...(b.addedIds || []).map(id => {
+    const ev = EVENTS.find(e => e.id === id);
+    return ev ? `[追加] ${ev.day}（${weekdayStr(ev)}） ${ev.name.ja}` : null;
+  }), ...(b.cancelledIds || []).map(id => {
+    const ev = EVENTS.find(e => e.id === id);
+    return ev ? `[キャンセル] ${ev.day}（${weekdayStr(ev)}） ${ev.name.ja}` : null;
+  })].filter(Boolean);
+
+  const body = `【立願${isUpdate ? '更新' : '新規'}通知】${b.name}\n\n対象月：${I18N.ja.period}（${MONTH_CODE}）\n\n【変更内容】\n${changedEvs.join('\n')}\n\n【立願情報】\n役割：${b.role}\n対応言語：${b.language}${b.tmPrev != null ? '\nTM回数：今回が' + (b.tmPrev + 1) + '回目' : ''}${b.contact ? '\n連絡担当：' + b.contact : ''}${b.notes ? '\nご伝言：' + b.notes : ''}\n\nGLAD応現院`;
+
+  const subject = `【BCC通知】${b.name} 様 立願${isUpdate ? '更新' : '新規'}（${I18N.ja.period}）`;
+
+  addresses.forEach(toEmail => {
+    emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
+      to_email: toEmail,
+      to_name:  '管理者',
+      subject,
+      body,
+    }).catch(err => console.warn('BCC email error:', err));
+  });
+}
+
+function resetChanges() {
+  if (!confirm('当月のすべての追加・キャンセル記録を初期化します。\n\n・キャンセルされた立願は削除されます\n・現在の立願がすべて「最初の立願」として扱われます\n\nよろしいですか？')) return;
+  const headers = { apikey: SUPABASE_KEY, Authorization:'Bearer '+SUPABASE_KEY, 'Content-Type':'application/json', Prefer:'return=minimal' };
+  (async () => {
+    showToast('初期化中...');
+    let ok = 0;
+    for (const b of bookings) {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/reservations?email=eq.${encodeURIComponent(b.email)}&month=eq.${MONTH_CODE}`,
+        { method:'PATCH', headers, body: JSON.stringify({ prev_event_ids:'[]', cancelled_event_ids:'[]', status:'新規' }) }
+      );
+      if (res.ok) ok++;
+    }
+    showToast(`✓ 初期化完了（${ok}件）`);
+    loadFromDb();
+  })();
+}
+
+// ═══════════════════════════════════════
+// DATABASE
+// ═══════════════════════════════════════
+function dbHeaders(extra = {}) {
+  return { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY, ...extra };
+}
+
+function saveToDb(b, evLines, isUpdate) {
+  const payload = {
+    at:                  b.at,
+    name:                b.name,
+    email:               b.email,
+    language:            b.language,
+    role:                b.role,
+    tm_prev:             b.tmPrev ?? null,
+    tm_escort:           b.tmEscort || '',
+    events:              evLines.join(' / '),
+    event_ids:           JSON.stringify(b.eventIds),
+    prev_event_ids:      JSON.stringify(b.prevEventIds || []),
+    cancelled_event_ids: JSON.stringify(b.cancelledIds || []),
+    contact:             b.contact || '',
+    notes:               b.notes || '',
+    status:              isUpdate ? '更新' : '新規',
+    project:             PROJECT_CODE,
+    month:               MONTH_CODE,
+  };
+  const h = dbHeaders({ 'Content-Type':'application/json', Prefer:'return=minimal' });
+
+  // DBに既存レコードがあるか確認してから保存（言語が違っても同一メールなら更新扱い）
+  fetch(`${SUPABASE_URL}/rest/v1/reservations?email=eq.${encodeURIComponent(b.email)}&month=eq.${MONTH_CODE}&select=id`, {
+    headers: dbHeaders(),
+  })
+  .then(r => r.json())
+  .then(existing => {
+    const existsInDb = Array.isArray(existing) && existing.length > 0;
+    // DBに存在すれば必ず「更新」扱いにする
+    if (existsInDb && !isUpdate) payload.status = '更新';
+    return fetch(`${SUPABASE_URL}/rest/v1/reservations?email=eq.${encodeURIComponent(b.email)}&month=eq.${MONTH_CODE}`, { method:'DELETE', headers:h });
+  })
+  .then(() => fetch(`${SUPABASE_URL}/rest/v1/reservations`, { method:'POST', headers:h, body:JSON.stringify(payload) }))
+  .then(res => { if (!res.ok) return res.text().then(t => { throw new Error(t); }); loadFromDb(); })
+  .catch(err => console.warn('Supabase save error:', err));
+}
+
+function loadFromDb() {
+  fetch(`${SUPABASE_URL}/rest/v1/reservations?select=*&month=eq.${MONTH_CODE}&order=at.asc`, {
+    headers: dbHeaders(),
+  })
+  .then(r => r.json())
+  .then(rows => {
+    if (!Array.isArray(rows)) return;
+    bookings = rows.map(r => {
+      const parse = str => { try { return str ? JSON.parse(str) : []; } catch(e) { return []; } };
+      return {
+        id:                 r.id || Date.now(),
+        name:               r.name || '',
+        email:              r.email || '',
+        language:           r.language || '',
+        role:               r.role || '',
+        tmPrev:             r.tm_prev != null ? parseInt(r.tm_prev, 10) : null,
+        tmEscort:           r.tm_escort || '',
+        contact:            r.contact || '',
+        notes:              r.notes || '',
+        events:             r.events || '',
+        eventIds:           parse(r.event_ids),
+        prevEventIds:       parse(r.prev_event_ids),
+        cancelledEventIds:  parse(r.cancelled_event_ids),
+        at:                 r.at || '',
+        status:             r.status || '新規',
+      };
+    });
+    renderList();
+    renderAdmin();
+  })
+  .catch(err => console.warn('Supabase load error:', err));
+}
+
+// ═══════════════════════════════════════
+// EMAIL
+// ═══════════════════════════════════════
+emailjs.init({ publicKey: EMAILJS_PUBLIC });
+
+function sendConfirmEmail(b, evLines, isUpdate) {
+  const l = L();
+  function tmBlock(lang) {
+    if (!TM_ROLES.includes(b.role)) return '';
+    const count  = (b.tmPrev ?? 0) + 1;
+    const escort = b.role === 'TM(在日)' && b.tmEscort ? b.tmEscort : '';
+    if (lang === 'ja') return `\nTM回数：今回が${count}回目` + (escort ? `\n付き添い：${escort}` : '');
+    if (lang === 'zh') return `\nTM次数：第${count}次`       + (escort ? `\n陪同者：${escort}`   : '');
+    return                    `\nTM Count: ${count}th service` + (escort ? `\nEscort: ${escort}`   : '');
+  }
+  function cancelBlock(lang) {
+    const lines = (b.cancelledIds || []).map(id => {
+      const ev = EVENTS.find(e => e.id === id);
+      if (!ev) return null;
+      const day = ev.day + (weekdayStr(ev) ? `（${weekdayStr(ev)}）` : '');
+      if (lang === 'ja') return `[キャンセル] ${day} ${ev.name.ja}`;
+      if (lang === 'zh') return `[取消] ${day} ${ev.name.zh || ev.name.ja}`;
+      return `[Cancelled] ${day} ${ev.name.en || ev.name.ja}`;
+    }).filter(Boolean);
+    if (!lines.length) return '';
+    if (lang === 'ja') return '\n\n【キャンセル】\n' + lines.join('\n');
+    if (lang === 'zh') return '\n\n【取消项目】\n'   + lines.join('\n');
+    return                    '\n\n[Cancelled]\n'    + lines.join('\n');
+  }
+  const contact = { ja: b.contact ? `\n連絡担当：${b.contact}` : '', zh: b.contact ? `\n联络负责人：${b.contact}` : '', en: b.contact ? `\nContact: ${b.contact}` : '' };
+  const period  = { ja: I18N.ja.period, zh: I18N.zh.period, en: I18N.en.period };
+  const svcs    = evLines.join('\n');
+  const notes   = { ja: b.notes ? `\nご伝言：${b.notes}` : '', zh: b.notes ? `\n留言：${b.notes}` : '', en: b.notes ? `\nMessage: ${b.notes}` : '' };
+  const subjects = {
+    ja: isUpdate ? '【立願更新】GLAD ご奉仕立願'   : '【立願確認】GLAD ご奉仕立願',
+    zh: isUpdate ? '【志愿更新】GLAD 奉仕志愿'      : '【志愿确认】GLAD 奉仕志愿',
+    en: isUpdate ? '[Registration Updated] GLAD Gohoshi' : '[Registration Confirmed] GLAD Gohoshi',
+  };
+  const bodies = {
+    ja: `${b.name} 様\n\n${isUpdate?'以下の内容で立願を更新いたしました。':'以下のご奉仕の立願が完了いたしました。'}\n\n対象月：${period.ja}（${MONTH_CODE}）\n\n【ご奉仕】\n${svcs}${cancelBlock('ja')}\n\n【立願情報】\n役割：${b.role}\n対応言語：${b.language}${tmBlock('ja')}${contact.ja}${notes.ja}\n\n当日のご奉仕をお待ちしております。\nGLAD応現院`,
+    zh: `${b.name}\n\n${isUpdate?'您的志愿已更新如下。':'以下奉仕的志愿已确认。'}\n\n对象月份：${period.zh}（${MONTH_CODE}）\n\n【奉仕项目】\n${svcs}${cancelBlock('zh')}\n\n【志愿信息】\n角色：${b.role}\n对应语言：${b.language}${tmBlock('zh')}${contact.zh}${notes.zh}\n\n期待您的到来。\nGLAD応現院`,
+    en: `Dear ${b.name},\n\n${isUpdate?'Your registration has been updated as follows.':'Your registration has been confirmed.'}\n\nMonth: ${period.en} (${MONTH_CODE})\n\n[Services]\n${svcs}${cancelBlock('en')}\n\n[Registration Details]\nRole: ${b.role}\nLanguage: ${b.language}${tmBlock('en')}${contact.en}${notes.en}\n\nWe look forward to welcoming you.\nGLAD Ogen-in`,
+  };
+  const lang = currentLang;
+  emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
+    to_email: b.email,
+    to_name:  b.name + ' 様',
+    subject:  subjects[lang] || subjects.ja,
+    body:     bodies[lang]   || bodies.ja,
+  }).catch(err => console.warn('EmailJS error:', err));
+}
+
+// ═══════════════════════════════════════
+// DEMO DATA
+// ═══════════════════════════════════════
+function seedDemoData() {
+  if (!confirm('デモデータ（40件）を投入します。よろしいですか？')) return;
+  const G = { status:'新規', project:'GLAD', month:'2026-04', prev_event_ids:'[]', cancelled_event_ids:'[]' };
+  const upd = (prev, cancelled=[]) => ({ status:'更新', project:'GLAD', month:'2026-04', prev_event_ids:JSON.stringify(prev), cancelled_event_ids:JSON.stringify(cancelled) });
+
+  const DEMO = [
+    // CENTER
+    {name:'田中 恵子', email:'tanaka.keiko@demo.com',       role:'センター',    language:'英語・中国語',        contact:'木村 信夫', events:'4日（土） 廻向法要 / 11日（土） 正輪会 / 15日（水） 常楽会',                    event_ids:JSON.stringify(['e01','e04','e06']),        notes:'',                    tm_prev:null, tm_escort:'', at:'2026/04/01 9:00:00',  ...G},
+    {name:'山本 浩二', email:'yamamoto.koji@demo.com',       role:'センター',    language:'スペイン語・ポルトガル語', contact:'木村 信夫', events:'8日（水） 真導院様セレモニー / 18日（土） 真如済摂会',                        event_ids:JSON.stringify(['e02','e07']),              notes:'',                    tm_prev:null, tm_escort:'', at:'2026/04/01 10:15:00',...G},
+    {name:'前田 光子', email:'maeda.mitsuko@demo.com',       role:'センター',    language:'日本語・韓国語',        contact:'',         events:'9日（木） 一如祈念 / 21日（火） 一如祈念 / 28日（火） 法前供',                    event_ids:JSON.stringify(['e03','e10','e13']),        notes:'韓国語メンバー担当',    tm_prev:null, tm_escort:'', at:'2026/04/01 13:00:00',...G},
+    {name:'木村 信夫', email:'kimura.nobuo@demo.com',        role:'センター',    language:'英語・フランス語',       contact:'',         events:'18日（土） 真如済摂会 / 25日（土） One Heart セレモニー / 28日（火） 法前供',    event_ids:JSON.stringify(['e07','e12','e13']),        notes:'',                    tm_prev:null, tm_escort:'', at:'2026/04/01 14:00:00',...G},
+    // ASSISTANT
+    {name:'佐藤 美佳', email:'sato.mika@demo.com',           role:'アシスタント', language:'英語',               contact:'田中 恵子', events:'4日（土） 廻向法要 / 9日（木） 一如祈念 / 28日（火） 法前供',                     event_ids:JSON.stringify(['e01','e03','e13']),        notes:'よろしくお願いします',  tm_prev:null, tm_escort:'', at:'2026/04/03 15:00:00',...upd(['e03','e13'])},
+    {name:'鈴木 隆',   email:'suzuki.takashi@demo.com',      role:'アシスタント', language:'中国語・英語',          contact:'山本 浩二', events:'15日（水） 常楽会 / 24日（金） 廻向法要',                                      event_ids:JSON.stringify(['e06','e11']),              notes:'',                    tm_prev:null, tm_escort:'', at:'2026/04/02 8:45:00', ...G},
+    {name:'渡辺 香',   email:'watanabe.kaori@demo.com',      role:'アシスタント', language:'広東語・中国語',         contact:'',         events:'11日（土） 正輪会 / 20日（月） 笠法様法楽法要',                                 event_ids:JSON.stringify(['e04','e09']),              notes:'25日は都合が悪くなりました', tm_prev:null, tm_escort:'', at:'2026/04/04 9:00:00', ...upd(['e04','e09','e12'],['e12'])},
+    {name:'加藤 里奈', email:'kato.rina@demo.com',           role:'アシスタント', language:'英語・ポルトガル語',     contact:'山本 浩二', events:'4日（土） 廻向法要 / 20日（月） 笠法様法楽法要 / 24日（金） 廻向法要',            event_ids:JSON.stringify(['e01','e09','e11']),        notes:'',                    tm_prev:null, tm_escort:'', at:'2026/04/02 11:00:00',...G},
+    {name:'吉田 健太', email:'yoshida.kenta@demo.com',       role:'アシスタント', language:'スペイン語',            contact:'木村 信夫', events:'8日（水） 真導院様セレモニー / 15日（水） 常楽会 / 18日（土） 真如済摂会',        event_ids:JSON.stringify(['e02','e06','e07']),        notes:'',                    tm_prev:null, tm_escort:'', at:'2026/04/02 13:00:00',...G},
+    // ZAICHI
+    {name:'Maria Silva',   email:'maria.silva@demo.com',     role:'在日',        language:'ポルトガル語・英語',     contact:'山本 浩二', events:'4日（土） 廻向法要 / 20日（月） 笠法様法楽法要',                                event_ids:JSON.stringify(['e01','e09']),              notes:'',                    tm_prev:null, tm_escort:'', at:'2026/04/02 14:00:00',...G},
+    {name:'Carlos Mendoza',email:'carlos.mendoza@demo.com',  role:'在日',        language:'スペイン語',            contact:'山本 浩二', events:'11日（土） 正輪会 / 25日（土） One Heart セレモニー',                          event_ids:JSON.stringify(['e04','e12']),              notes:'',                    tm_prev:null, tm_escort:'', at:'2026/04/04 10:00:00',...upd(['e01','e12'],['e01'])},
+    {name:'박 민준',        email:'park.minjun@demo.com',    role:'在日',        language:'韓国語・日本語',         contact:'前田 光子', events:'4日（土） 廻向法要 / 15日（水） 常楽会',                                        event_ids:JSON.stringify(['e01','e06']),              notes:'',                    tm_prev:null, tm_escort:'', at:'2026/04/03 8:00:00', ...G},
+    {name:'陳 偉明',        email:'chan.waimeng@demo.com',   role:'在日',        language:'広東語・中国語',         contact:'渡辺 香',   events:'11日（土） 正輪会 / 24日（金） 廻向法要',                                       event_ids:JSON.stringify(['e04','e11']),              notes:'広東語のみ希望',        tm_prev:null, tm_escort:'', at:'2026/04/03 9:00:00', ...G},
+    {name:'Rosa Fernandez', email:'rosa.fernandez@demo.com', role:'在日',        language:'スペイン語・英語',       contact:'加藤 里奈', events:'4日（土） 廻向法要 / 11日（土） 正輪会 / 15日（水） 常楽会',                    event_ids:JSON.stringify(['e01','e04','e06']),        notes:'',                    tm_prev:null, tm_escort:'', at:'2026/04/03 10:00:00',...G},
+    {name:'João Santos',    email:'joao.santos@demo.com',   role:'在日',        language:'ポルトガル語',           contact:'加藤 里奈', events:'9日（木） 一如祈念 / 24日（金） 廻向法要',                                      event_ids:JSON.stringify(['e03','e11']),              notes:'',                    tm_prev:null, tm_escort:'', at:'2026/04/03 11:00:00',...G},
+    {name:'李 秀英',         email:'li.xiuying@demo.com',   role:'在日',        language:'中国語',                contact:'鈴木 隆',   events:'15日（水） 常楽会 / 20日（月） 笠法様法楽法要 / 28日（火） 法前供',               event_ids:JSON.stringify(['e06','e09','e13']),        notes:'',                    tm_prev:null, tm_escort:'', at:'2026/04/03 13:00:00',...G},
+    {name:'이 지영',         email:'lee.jiyoung@demo.com',  role:'在日',        language:'韓国語・英語',           contact:'前田 光子', events:'11日（土） 正輪会 / 21日（火） 一如祈念',                                       event_ids:JSON.stringify(['e04','e10']),              notes:'',                    tm_prev:null, tm_escort:'', at:'2026/04/03 14:00:00',...G},
+    // NIHONJIN
+    {name:'高橋 誠',   email:'takahashi.makoto@demo.com',   role:'日本人',      language:'英語',                  contact:'佐藤 美佳', events:'9日（木） 一如祈念 / 21日（火） 一如祈念',                                      event_ids:JSON.stringify(['e03','e10']),              notes:'',                    tm_prev:null, tm_escort:'', at:'2026/04/03 9:10:00', ...G},
+    {name:'伊藤 由美', email:'ito.yumi@demo.com',            role:'日本人',      language:'フランス語・英語',       contact:'',         events:'4日（土） 廻向法要 / 15日（水） 常楽会 / 28日（火） 法前供',                     event_ids:JSON.stringify(['e01','e06','e13']),        notes:'フランス語対応できます',  tm_prev:null, tm_escort:'', at:'2026/04/05 8:00:00', ...upd(['e01','e06'])},
+    {name:'松本 大介', email:'matsumoto.daisuke@demo.com',   role:'日本人',      language:'スペイン語・英語',       contact:'鈴木 隆',   events:'8日（水） 真導院様セレモニー / 18日（土） 真如済摂会',                           event_ids:JSON.stringify(['e02','e07']),              notes:'',                    tm_prev:null, tm_escort:'', at:'2026/04/03 14:00:00',...G},
+    {name:'岡田 純子', email:'okada.junko@demo.com',         role:'日本人',      language:'英語・中国語',          contact:'田中 恵子', events:'11日（土） 正輪会 / 12日（日） 一如祈念 / 20日（月） 笠法様法楽法要',             event_ids:JSON.stringify(['e04','e05','e09']),        notes:'',                    tm_prev:null, tm_escort:'', at:'2026/04/04 8:00:00', ...G},
+    {name:'中島 浩',   email:'nakajima.hiroshi@demo.com',    role:'日本人',      language:'ポルトガル語',           contact:'木村 信夫', events:'25日（土） One Heart セレモニー / 28日（火） 法前供',                          event_ids:JSON.stringify(['e12','e13']),              notes:'',                    tm_prev:null, tm_escort:'', at:'2026/04/04 9:00:00', ...G},
+    {name:'斉藤 京子', email:'saito.kyoko@demo.com',         role:'日本人',      language:'広東語・英語',           contact:'渡辺 香',   events:'4日（土） 廻向法要 / 24日（金） 廻向法要',                                      event_ids:JSON.stringify(['e01','e11']),              notes:'広東語少し話せます',     tm_prev:null, tm_escort:'', at:'2026/04/04 10:00:00',...G},
+    {name:'林 昭夫',   email:'hayashi.akio@demo.com',        role:'日本人',      language:'英語',                  contact:'',         events:'12日（日） 一如祈念 / 21日（火） 一如祈念',                                     event_ids:JSON.stringify(['e05','e10']),              notes:'',                    tm_prev:null, tm_escort:'', at:'2026/04/04 11:00:00',...G},
+    // TM(在日) with escort
+    {name:'Ana Oliveira',   email:'ana.oliveira@demo.com',   role:'TM(在日)',    language:'ポルトガル語',           contact:'Maria Silva',   events:'4日（土） 廻向法要',                                                    event_ids:JSON.stringify(['e01']),                   notes:'',                    tm_prev:2, tm_escort:'Pedro Oliveira', at:'2026/04/03 11:00:00',...G},
+    {name:'Lucia Gomez',    email:'lucia.gomez@demo.com',    role:'TM(在日)',    language:'スペイン語・英語',       contact:'Carlos Mendoza', events:'11日（土） 正輪会 / 24日（金） 廻向法要',                               event_ids:JSON.stringify(['e04','e11']),              notes:'',                    tm_prev:5, tm_escort:'Roberto Gomez',  at:'2026/04/05 10:00:00',...upd(['e11'])},
+    {name:'김 지수',          email:'kim.jisu@demo.com',     role:'TM(在日)',    language:'韓国語',                contact:'박 민준',        events:'15日（水） 常楽会 / 25日（土） One Heart セレモニー',                   event_ids:JSON.stringify(['e06','e12']),              notes:'',                    tm_prev:1, tm_escort:'김 영호',        at:'2026/04/04 10:00:00',...G},
+    {name:'Fatima Al-Hassan',email:'fatima.alhassan@demo.com',role:'TM(在日)',   language:'フランス語・英語',       contact:'木村 信夫',       events:'15日（水） 常楽会',                                                    event_ids:JSON.stringify(['e06']),                   notes:'28日は急用があります', tm_prev:3, tm_escort:'Yusuf Al-Hassan', at:'2026/04/05 11:00:00',...upd(['e06','e13'],['e13'])},
+    {name:'Paulo Sousa',    email:'paulo.sousa@demo.com',    role:'TM(在日)',    language:'ポルトガル語・スペイン語', contact:'加藤 里奈',      events:'4日（土） 廻向法要 / 11日（土） 正輪会',                                event_ids:JSON.stringify(['e01','e04']),              notes:'',                    tm_prev:0, tm_escort:'Carla Sousa',   at:'2026/04/04 12:00:00',...G},
+    // TM(在日) no escort
+    {name:'Wei Chen',       email:'wei.chen@demo.com',       role:'TM(在日)',    language:'中国語',                contact:'渡辺 香',        events:'11日（土） 正輪会 / 15日（水） 常楽会',                                 event_ids:JSON.stringify(['e04','e06']),              notes:'',                    tm_prev:0, tm_escort:'', at:'2026/04/05 9:00:00', ...upd(['e06'])},
+    {name:'Hana Tanaka',    email:'hana.tanaka@demo.com',    role:'TM(在日)',    language:'英語',                  contact:'佐藤 美佳',       events:'9日（木） 一如祈念 / 20日（月） 笠法様法楽法要',                       event_ids:JSON.stringify(['e03','e09']),              notes:'',                    tm_prev:4, tm_escort:'', at:'2026/04/05 8:30:00', ...G},
+    {name:'Mei Lin',        email:'mei.lin@demo.com',        role:'TM(在日)',    language:'中国語・広東語',         contact:'鈴木 隆',         events:'11日（土） 正輪会 / 24日（金） 廻向法要',                              event_ids:JSON.stringify(['e04','e11']),              notes:'',                    tm_prev:2, tm_escort:'', at:'2026/04/05 9:00:00', ...G},
+    // TM(日本人)
+    {name:'中村 健',   email:'nakamura.ken@demo.com',         role:'TM(日本人)', language:'英語・中国語',           contact:'田中 恵子',       events:'4日（土） 廻向法要 / 11日（土） 正輪会 / 15日（水） 常楽会',          event_ids:JSON.stringify(['e01','e04','e06']),        notes:'',                    tm_prev:8,  tm_escort:'', at:'2026/04/04 12:00:00',...G},
+    {name:'小林 奈緒', email:'kobayashi.nao@demo.com',        role:'TM(日本人)', language:'フランス語',             contact:'',               events:'9日（木） 一如祈念 / 20日（月） 笠法様法楽法要 / 28日（火） 法前供',  event_ids:JSON.stringify(['e03','e09','e13']),        notes:'フランス語のみ対応',    tm_prev:3,  tm_escort:'', at:'2026/04/05 8:00:00', ...G},
+    {name:'森 拓也',   email:'mori.takuya@demo.com',          role:'TM(日本人)', language:'スペイン語・ポルトガル語', contact:'鈴木 隆',        events:'4日（土） 廻向法要 / 28日（火） 法前供',                              event_ids:JSON.stringify(['e01','e13']),              notes:'',                    tm_prev:12, tm_escort:'', at:'2026/04/06 9:00:00', ...upd(['e01','e11','e13'],['e11'])},
+    {name:'石田 明美', email:'ishida.akemi@demo.com',         role:'TM(日本人)', language:'英語',                  contact:'高橋 誠',         events:'8日（水） 真導院様セレモニー / 15日（水） 常楽会 / 18日（土） 真如済摂会', event_ids:JSON.stringify(['e02','e06','e07']),      notes:'',                    tm_prev:6,  tm_escort:'', at:'2026/04/05 10:00:00',...G},
+    {name:'山田 一郎', email:'yamada.ichiro@demo.com',        role:'TM(日本人)', language:'広東語・中国語',         contact:'渡辺 香',         events:'11日（土） 正輪会 / 25日（土） One Heart セレモニー',                  event_ids:JSON.stringify(['e04','e12']),              notes:'',                    tm_prev:1,  tm_escort:'', at:'2026/04/05 11:00:00',...G},
+    {name:'坂本 真理', email:'sakamoto.mari@demo.com',        role:'TM(日本人)', language:'韓国語・英語',           contact:'前田 光子',       events:'21日（火） 一如祈念 / 28日（火） 法前供',                              event_ids:JSON.stringify(['e10','e13']),              notes:'韓国語TMです',          tm_prev:0,  tm_escort:'', at:'2026/04/06 10:00:00',...upd(['e05','e13'],['e05'])},
+    {name:'橋本 学',   email:'hashimoto.manabu@demo.com',     role:'TM(日本人)', language:'ポルトガル語・英語',     contact:'中島 浩',         events:'4日（土） 廻向法要 / 20日（月） 笠法様法楽法要',                       event_ids:JSON.stringify(['e01','e09']),              notes:'',                    tm_prev:15, tm_escort:'', at:'2026/04/05 14:00:00',...G},
+  ];
+
+  const h = dbHeaders({ 'Content-Type':'application/json', Prefer:'return=minimal' });
+  (async () => {
+    showToast('デモデータを投入中...');
+    let ok = 0;
+    for (const d of DEMO) {
+      await fetch(`${SUPABASE_URL}/rest/v1/reservations?email=eq.${encodeURIComponent(d.email)}&month=eq.${MONTH_CODE}`, { method:'DELETE', headers:h });
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/reservations`, { method:'POST', headers:h, body:JSON.stringify(d) });
+      if (res.ok) ok++;
+    }
+    showToast(`✓ デモデータ ${ok}件を投入しました`);
+    loadFromDb();
+  })();
+}
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  emailjs.init({ publicKey: EMAILJS_PUBLIC });
+  applyI18n();
+  renderEvents();
+  loadFromDb();
+  loadReceptionStatus();
+});
+</script>
+</body>
+</html>
