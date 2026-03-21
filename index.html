@@ -517,8 +517,8 @@ const EMAILJS_SERVICE  = 'service_ipxh0mu';
 const EMAILJS_TEMPLATE = 'template_4hkdbhc';
 const ADMIN_PW_SETTING  = PROJECT_CODE + '_' + MONTH_CODE + '_admin_pw';
 const RECEPTION_SETTING = PROJECT_CODE + '_' + MONTH_CODE + '_reception';
-const BCC_EMAIL_SETTING = PROJECT_CODE + '_bcc_email'; // 月をまたいで共通
-const BCC_DAYS_SETTING  = PROJECT_CODE + '_bcc_days';  // 月をまたいで共通
+const BCC_EMAIL_SETTING = PROJECT_CODE + '_bcc_email';
+const BCC_DAYS_SETTING  = PROJECT_CODE + '_bcc_days';
 
 // ═══════════════════════════════════════
 // EVENT LIST  ← 毎月ここを差し替え
@@ -674,7 +674,7 @@ let currentLang    = 'ja';
 let selected       = new Set();
 let bookings       = [];
 let listFilter     = 'all';
-let receptionOpen  = true; // DBから取得するまでデフォルトで表示
+let receptionOpen  = true;
 let isAdminAuthed  = false;
 let isSuperUser    = false;
 let pendingTab     = null;
@@ -812,14 +812,12 @@ function doSwitchTab(tab) {
 // EVENT CARD RENDERING
 // ═══════════════════════════════════════
 function isPastEvent(ev) {
-  // 日本時間（JST = UTC+9）で今日の日付を取得
-  const now      = new Date();
-  const jstOffset = 9 * 60; // 分
+  const now       = new Date();
+  const jstOffset = 9 * 60;
   const jstNow   = new Date(now.getTime() + (jstOffset + now.getTimezoneOffset()) * 60000);
   const today    = new Date(jstNow.getFullYear(), jstNow.getMonth(), jstNow.getDate());
   const parts    = MONTH_CODE.split('-');
   const evDate   = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(ev.day));
-  // 当日以前（today以下）はグレーアウト
   return evDate <= today;
 }
 
@@ -884,7 +882,7 @@ function onOtherLangToggle(cb) {
 // ═══════════════════════════════════════
 // FORM SUBMIT
 // ═══════════════════════════════════════
-let _pendingBooking = null; // 確認モーダル承認待ちデータ
+let _pendingBooking = null;
 
 function submitForm() {
   const l = L();
@@ -933,7 +931,6 @@ function submitForm() {
   const pastPrevIds = prevIds.filter(id => isPastEvent(EVENTS.find(e => e.id === id)));
   pastPrevIds.forEach(id => { if (!b.eventIds.includes(id)) b.eventIds.push(id); });
 
-  // 追加・キャンセルは未来の法要のみで判定
   b.addedIds     = b.eventIds.filter(id => !prevIds.includes(id) && !isPastEvent(EVENTS.find(e => e.id === id)));
   b.cancelledIds = prevIds.filter(id => !b.eventIds.includes(id) && !isPastEvent(EVENTS.find(e => e.id === id)));
   b.prevEventIds = prevIds;
@@ -1694,14 +1691,12 @@ function saveToDb(b, evLines, isUpdate) {
   };
   const h = dbHeaders({ 'Content-Type':'application/json', Prefer:'return=minimal' });
 
-  // DBに既存レコードがあるか確認してから保存（言語が違っても同一メールなら更新扱い）
   fetch(`${SUPABASE_URL}/rest/v1/reservations?email=eq.${encodeURIComponent(b.email)}&month=eq.${MONTH_CODE}&select=id`, {
     headers: dbHeaders(),
   })
   .then(r => r.json())
   .then(existing => {
     const existsInDb = Array.isArray(existing) && existing.length > 0;
-    // DBに存在すれば必ず「更新」扱いにする
     if (existsInDb && !isUpdate) payload.status = '更新';
     return fetch(`${SUPABASE_URL}/rest/v1/reservations?email=eq.${encodeURIComponent(b.email)}&month=eq.${MONTH_CODE}`, { method:'DELETE', headers:h });
   })
@@ -1718,7 +1713,7 @@ function loadFromDb() {
   .then(rows => {
     if (!Array.isArray(rows)) return;
     bookings = rows.map(r => {
-      const parse = str => { try { return str ? JSON.parse(str) : []; } catch(e) { return []; } };
+      const parse = s => { try { return s ? JSON.parse(s) : []; } catch(e) { return []; } };
       return {
         id:                 r.id || Date.now(),
         name:               r.name || '',
