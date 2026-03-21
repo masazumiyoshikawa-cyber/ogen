@@ -1230,14 +1230,43 @@ function renderAdmin() {
 
 function delBooking(email) {
   if (!confirm(L().confirmDel)) return;
+  const b = bookings.find(bk => bk.email === email);
   const headers = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
   fetch(`${SUPABASE_URL}/rest/v1/reservations?email=eq.${encodeURIComponent(email)}&month=eq.${MONTH_CODE}`, { method:'DELETE', headers })
     .then(() => {
-      bookings = bookings.filter(b => b.email !== email);
+      if (b) sendCancellationEmail(b);
+      bookings = bookings.filter(bk => bk.email !== email);
       renderAdmin();
       renderList();
+      showToast('✓ 取り消し・通知メールを送信しました');
     })
     .catch(err => console.warn('Delete error:', err));
+}
+
+function sendCancellationEmail(b) {
+  const evLines = (b.eventIds || []).map(id => {
+    const ev = EVENTS.find(e => e.id === id);
+    return ev ? ev.day + (weekdayStr(ev) ? '（' + weekdayStr(ev) + '）' : '') + ' ' + ev.name.ja : null;
+  }).filter(Boolean);
+
+  const subjects = {
+    ja: '【立願取消】GLAD ご奉仕立願',
+    zh: '【志愿取消】GLAD 奉仕志愿',
+    en: '[Registration Cancelled] GLAD Gohoshi',
+  };
+  const bodies = {
+    ja: `${b.name} 様\n\n以下のご奉仕の立願が管理者によって取り消されました。\n\n対象月：${I18N.ja.period}（${MONTH_CODE}）\n\n【取り消されたご奉仕】\n${evLines.join('\n')}\n\nご不明な点は担当者までお問い合わせください。\nGLAD応現院`,
+    zh: `${b.name}\n\n以下奉仕的志愿已被管理员取消。\n\n对象月份：${I18N.zh.period}（${MONTH_CODE}）\n\n【已取消的奉仕项目】\n${evLines.join('\n')}\n\n如有疑问，请联系负责人。\nGLAD応現院`,
+    en: `Dear ${b.name},\n\nYour registration for the following service(s) has been cancelled by the administrator.\n\nMonth: ${I18N.en.period} (${MONTH_CODE})\n\n[Cancelled Service(s)]\n${evLines.join('\n')}\n\nPlease contact your coordinator if you have any questions.\nGLAD Ogen-in`,
+  };
+  // 立願時の言語でメール送信（不明な場合は日本語）
+  const lang = currentLang;
+  emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
+    to_email: b.email,
+    to_name:  b.name + ' 様',
+    subject:  subjects[lang] || subjects.ja,
+    body:     bodies[lang]   || bodies.ja,
+  }).catch(err => console.warn('Cancellation email error:', err));
 }
 
 // ═══════════════════════════════════════
