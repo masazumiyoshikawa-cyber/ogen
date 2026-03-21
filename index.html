@@ -966,7 +966,7 @@ function showConfirmModal(b, isUpdate) {
       <span class="cmod-ev-name ${type}">${name}</span>
     </div>`;
   });
-  document.getElementById('cmod-services-label').textContent = l.secSelect || 'ご奉仕';
+  document.getElementById('cmod-services-label').textContent = 'ご奉仕';
 
   // キャンセルセクション
   const canSec = document.getElementById('cmod-cancelled-section');
@@ -993,7 +993,7 @@ function showConfirmModal(b, isUpdate) {
   const infoRows = [
     [l.lblRole,    b.role],
     [l.lblLang,    b.language],
-    ...(TM_ROLES.includes(b.role) && b.tmPrev != null ? [[l.tmCountLabel, `${b.tmPrev + 1}回目`]] : []),
+    ...(TM_ROLES.includes(b.role) && b.tmPrev != null ? [[l.tmCountLabel, `${b.tmPrev + 1}回`]] : []),
     ...(b.role === 'TM(在日)' && b.tmEscort ? [[l.tmEscortLabel, b.tmEscort]] : []),
     ...(b.contact ? [[l.lblContact, b.contact]] : []),
     ...(b.notes   ? [[l.lblNotes,   b.notes]]   : []),
