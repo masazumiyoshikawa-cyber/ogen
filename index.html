@@ -674,7 +674,7 @@ let currentLang    = 'ja';
 let selected       = new Set();
 let bookings       = [];
 let listFilter     = 'all';
-let receptionOpen  = false;
+let receptionOpen  = true; // DBから取得するまでデフォルトで表示
 let isAdminAuthed  = false;
 let isSuperUser    = false;
 let pendingTab     = null;
@@ -1516,8 +1516,16 @@ function loadReceptionStatus() {
     headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY },
   })
   .then(r => r.json())
-  .then(rows => updateReceptionUI(Array.isArray(rows) && rows.length > 0 && rows[0].value === 'open'))
-  .catch(() => updateReceptionUI(false));
+  .then(rows => {
+    if (Array.isArray(rows) && rows.length > 0) {
+      // DBに設定がある場合はその値に従う
+      updateReceptionUI(rows[0].value === 'open');
+    } else {
+      // DBに設定がない月はデフォルトで受付開始（フォームを表示）
+      updateReceptionUI(true);
+    }
+  })
+  .catch(() => updateReceptionUI(true)); // エラー時もフォームを表示
 }
 
 function toggleReception() {
