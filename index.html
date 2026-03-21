@@ -508,7 +508,7 @@ tr:hover td{background:var(--paper-warm);}
 // CONFIG  ← 毎月ここだけ変更
 // ═══════════════════════════════════════
 const PROJECT_CODE     = 'GLAD';
-const MONTH_CODE       = '2026-03';
+const MONTH_CODE       = '2026-04';
 const SUPER_USER_EMAIL = 'masazumi.yoshikawa@gmail.com';
 const SUPABASE_URL     = 'https://brttvnrlaahoqkepzyck.supabase.co';
 const SUPABASE_KEY     = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJydHR2bnJsYWFob3FrZXB6eWNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MjMxMjYsImV4cCI6MjA4OTQ5OTEyNn0.7yEZpH68JoBhdqFsF8s28nfHVVX4hnoM6DHcD9A8GkQ';
@@ -812,13 +812,15 @@ function doSwitchTab(tab) {
 // EVENT CARD RENDERING
 // ═══════════════════════════════════════
 function isPastEvent(ev) {
-  const now   = new Date();
-  // MONTH_CODE = 'YYYY-MM' から年月を取得、日は ev.day
-  const parts = MONTH_CODE.split('-');
-  const evDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(ev.day));
-  // 今日の0時と比較（当日はグレーアウトしない）
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  return evDate < today;
+  // 日本時間（JST = UTC+9）で今日の日付を取得
+  const now      = new Date();
+  const jstOffset = 9 * 60; // 分
+  const jstNow   = new Date(now.getTime() + (jstOffset + now.getTimezoneOffset()) * 60000);
+  const today    = new Date(jstNow.getFullYear(), jstNow.getMonth(), jstNow.getDate());
+  const parts    = MONTH_CODE.split('-');
+  const evDate   = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(ev.day));
+  // 当日以前（today以下）はグレーアウト
+  return evDate <= today;
 }
 
 function renderEvents() {
