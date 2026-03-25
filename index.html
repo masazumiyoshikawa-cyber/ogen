@@ -1046,14 +1046,12 @@ function submitConfirmed() {
   saveToDb(b, evLines, isUpdate);
   sendConfirmEmail(b, evLines, isUpdate);
 
-  // BCC通知（追加・キャンセルが直近日数以内にある場合）
-  if ((b.addedIds || []).length > 0 || (b.cancelledIds || []).length > 0) {
-    getBccTarget().then(bcc => {
-      if (bcc && needsBccNotification(b, bcc.days)) {
-        sendBccEmail(b, evLines, isUpdate, bcc.email);
-      }
-    });
-  }
+  // BCC通知（直近日数以内の法要に変更または新規立願がある場合）
+  getBccTarget().then(bcc => {
+    if (bcc && needsBccNotification(b, bcc.days)) {
+      sendBccEmail(b, evLines, isUpdate, bcc.email, bcc.days);
+    }
+  });
 
   document.getElementById('formWrap').style.display = 'none';
   document.getElementById('confirmBlock').classList.add('vis');
@@ -1309,7 +1307,7 @@ function downloadExcel() {
     return p.join('、');
   }
 
-  rows.push({ cells:['法要','人数','役割','氏名','言語','連絡担当','備考'], isHeader:true });
+  rows.push({ cells:['法要','人数','#','役割','氏名','言語','連絡担当','備考'], isHeader:true });
 
   EVENTS.forEach(ev => {
     const active    = sortByRole(bookings.filter(b => b.eventIds && b.eventIds.includes(ev.id)));
@@ -1321,29 +1319,29 @@ function downloadExcel() {
     groupRows.push(groupStart);
 
     if (!active.length && !cancelled.length) {
-      rows.push({ cells:[label, count, '','','','',''] });
+      rows.push({ cells:[label, count, '','','','','',''] });
       return;
     }
     active.forEach((b, i) => {
       const isPast   = isPastEvent(ev);
       const isAdded  = !isPast && b.status === '更新' && (b.prevEventIds || []).length > 0 && !(b.prevEventIds || []).includes(ev.id);
-      rows.push({ cells:[i === 0 ? label : '', i === 0 ? count : '', roleShort(b, ev.id), b.name, langShort(b.language), b.contact || '', notesCell(b)], isAdded, isPast });
+      rows.push({ cells:[i === 0 ? label : '', i === 0 ? count : '', i + 1, roleShort(b, ev.id), b.name, langShort(b.language), b.contact || '', notesCell(b)], isAdded, isPast });
     });
     if (active.length > 1) {
       merges.push({ s:{r:groupStart,c:0}, e:{r:groupStart+active.length-1,c:0} });
       merges.push({ s:{r:groupStart,c:1}, e:{r:groupStart+active.length-1,c:1} });
     }
-    cancelled.forEach(b => rows.push({ cells:['','', roleShort(b, ev.id), b.name, langShort(b.language), b.contact || '', notesCell(b)], isCancelled:true }));
+    cancelled.forEach(b => rows.push({ cells:['','', '', roleShort(b, ev.id), b.name, langShort(b.language), b.contact || '', notesCell(b)], isCancelled:true }));
   });
 
   const ws  = XLSX.utils.aoa_to_sheet(rows.map(r => r.cells));
   ws['!merges']     = merges;
   ws['!sheetViews'] = [{ state:'frozen', ySplit:1, topLeftCell:'A2' }];
-  ws['!cols']       = [{wch:32},{wch:14},{wch:12},{wch:14},{wch:10},{wch:10},{wch:24}];
+  ws['!cols']       = [{wch:32},{wch:14},{wch:5},{wch:12},{wch:14},{wch:10},{wch:10},{wch:24}];
 
   const thin  = { style:'thin',   color:{rgb:'AAAAAA'} };
   const thick = { style:'medium', color:{rgb:'555555'} };
-  const N     = 7;
+  const N     = 8;
   const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
   for (let R = range.s.r; R <= range.e.r; R++) {
     const meta = rows[R] || {};
@@ -1354,7 +1352,7 @@ function downloadExcel() {
         font: { name:'Meiryo UI', sz:10, bold:!!meta.isHeader,
           color:{ rgb: meta.isCancelled ? '8B3A3A' : meta.isAdded ? '2A5EA8' : meta.isPast ? 'A89F96' : '2A2520' },
           strike: !!meta.isCancelled },
-        alignment: { vertical:'top', wrapText:true },
+        alignment: { vertical:'top', wrapText: C !== 2, horizontal: C === 2 ? 'center' : 'left' },
         fill: meta.isHeader ? { fgColor:{rgb:'F0EBE3'}, patternType:'solid' } : { patternType:'none' },
         border: {
           top:    (meta.isHeader || groupRows.includes(R)) ? thick : thin,
@@ -1615,13 +1613,19 @@ async function getBccTarget() {
 }
 
 function needsBccNotification(b, bccDays) {
-  // 追加・キャンセルされた法要のうち、今日〜bccDays日後以内のものがあるかチェック
-  const today    = new Date();
-  today.setHours(0,0,0,0);
-  const parts    = MONTH_CODE.split('-');
+  // JST基準で今日〜bccDays日後以内の法要があるかチェック
+  const now      = new Date();
+  const jst      = new Date(now.getTime() + (9 * 60 + now.getTimezoneOffset()) * 60000);
+  const today    = new Date(jst.getFullYear(), jst.getMonth(), jst.getDate());
   const deadline = new Date(today.getTime() + bccDays * 86400000);
-  const changedIds = [...(b.addedIds || []), ...(b.cancelledIds || [])];
-  return changedIds.some(id => {
+  const parts    = MONTH_CODE.split('-');
+
+  // 新規立願の場合は全eventIdsを対象、更新の場合は追加・キャンセルのみ
+  const targetIds = !b.isUpdate
+    ? (b.eventIds || [])
+    : [...(b.addedIds || []), ...(b.cancelledIds || [])];
+
+  return targetIds.some(id => {
     const ev = EVENTS.find(e => e.id === id);
     if (!ev) return false;
     const evDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(ev.day));
@@ -1629,22 +1633,50 @@ function needsBccNotification(b, bccDays) {
   });
 }
 
-function sendBccEmail(b, evLines, isUpdate, bccEmailStr) {
+function sendBccEmail(b, _evLines, isUpdate, bccEmailStr, bccDays) {
   // カンマ区切りで複数アドレスに対応
   const addresses = bccEmailStr.split(',').map(e => e.trim()).filter(e => e.includes('@'));
   if (!addresses.length) return;
 
-  const changedEvs = [...(b.addedIds || []).map(id => {
-    const ev = EVENTS.find(e => e.id === id);
-    return ev ? `[追加] ${ev.day}（${weekdayStr(ev)}） ${ev.name.ja}` : null;
-  }), ...(b.cancelledIds || []).map(id => {
-    const ev = EVENTS.find(e => e.id === id);
-    return ev ? `[キャンセル] ${ev.day}（${weekdayStr(ev)}） ${ev.name.ja}` : null;
-  })].filter(Boolean);
+  const parts    = MONTH_CODE.split('-');
+  const now      = new Date();
+  const jst      = new Date(now.getTime() + (9 * 60 + now.getTimezoneOffset()) * 60000);
+  const today    = new Date(jst.getFullYear(), jst.getMonth(), jst.getDate());
 
-  const body = `【立願${isUpdate ? '更新' : '新規'}通知】${b.name}\n\n対象月：${monthPeriod('ja')}（${MONTH_CODE}）\n\n【変更内容】\n${changedEvs.join('\n')}\n\n【立願情報】\n役割：${b.role}\n対応言語：${b.language}${b.tmPrev != null ? '\nTM回数：今回が' + (b.tmPrev + 1) + '回目' : ''}${b.contact ? '\n連絡担当：' + b.contact : ''}${b.notes ? '\nご伝言：' + b.notes : ''}\n\nGLAD応現院`;
+  // 直近日数以内かどうか判定
+  function isNear(id, days) {
+    const ev = EVENTS.find(e => e.id === id);
+    if (!ev) return false;
+    const evDate  = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(ev.day));
+    const deadline = new Date(today.getTime() + days * 86400000);
+    return evDate >= today && evDate <= deadline;
+  }
 
-  const subject = `【BCC通知】${b.name} 様 立願${isUpdate ? '更新' : '新規'}（${I18N.ja.period}）`;
+  // BCC通知対象の法要のみ（直近日数以内）
+  const nearIds = !isUpdate
+    ? (b.eventIds || []).filter(id => isNear(id, bccDays))
+    : [...(b.addedIds || []).filter(id => isNear(id, bccDays)),
+       ...(b.cancelledIds || []).filter(id => isNear(id, bccDays))];
+
+  if (!nearIds.length) return;
+
+  const evLines = !isUpdate
+    ? nearIds.map(id => {
+        const ev = EVENTS.find(e => e.id === id);
+        return ev ? `[新規] ${ev.day}（${weekdayStr(ev)}） ${ev.name.ja}` : null;
+      }).filter(Boolean)
+    : [...(b.addedIds || []).filter(id => isNear(id, bccDays)).map(id => {
+        const ev = EVENTS.find(e => e.id === id);
+        return ev ? `[追加] ${ev.day}（${weekdayStr(ev)}） ${ev.name.ja}` : null;
+      }), ...(b.cancelledIds || []).filter(id => isNear(id, bccDays)).map(id => {
+        const ev = EVENTS.find(e => e.id === id);
+        return ev ? `[キャンセル] ${ev.day}（${weekdayStr(ev)}） ${ev.name.ja}` : null;
+      })].filter(Boolean);
+
+  const sectionTitle = !isUpdate ? '【立願内容（直近）】' : '【変更内容（直近）】';
+  const body = `【立願${isUpdate ? '更新' : '新規'}通知】${b.name}\n\n対象月：${monthPeriod('ja')}（${MONTH_CODE}）\n\n${sectionTitle}\n${evLines.join('\n')}\n\n【立願情報】\n役割：${b.role}\n対応言語：${b.language}${b.tmPrev != null ? '\nTM回数：今回が' + (b.tmPrev + 1) + '回目' : ''}${b.contact ? '\n連絡担当：' + b.contact : ''}${b.notes ? '\nご伝言：' + b.notes : ''}\n\nGLAD応現院`;
+
+  const subject = `【BCC通知】${b.name} 様 立願${isUpdate ? '更新' : '新規'}（${monthPeriod('ja')}）`;
 
   addresses.forEach(toEmail => {
     emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
